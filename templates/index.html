@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedRelay — Prescription to Pharmacy</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav class="nav">
+  <a href="{{ url_for('index') }}" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text">Med<span>Relay</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('index') }}">Home</a></li>
+    <li><a href="{{ url_for('upload_page') }}">Upload Rx</a></li>
+    <li><a href="{{ url_for('map_page') }}">Find Pharmacy</a></li>
+    <li><a href="{{ url_for('responses_page') }}">Responses</a></li>
+  </ul>
+  <button class="nav-cta" data-href="{{ url_for('upload_page') }}" onclick="location.href=this.dataset.href;">Upload Prescription</button>
+  <button class="nav-hamburger"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page">
+
+  <!-- ═══ HERO ═══ -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-badge"><span class="pulse-dot"></span> Live across Nagpur &amp; surrounding areas</div>
+    <h1>Your prescription,<br><em>forwarded instantly</em><br>to every nearby pharmacy</h1>
+    <p class="hero-sub">
+      Upload your doctor's prescription once. We broadcast it to all licensed pharmacies
+      in your area — they reply with availability and pricing within minutes.
+    </p>
+    <div class="hero-actions">
+      <a href="{{ url_for('upload_page') }}" class="btn btn-primary">📄 Upload Prescription</a>
+      <a href="{{ url_for('map_page') }}"    class="btn btn-outline">🗺️ Find Pharmacies Nearby</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="stat-n">340+</div><div class="stat-l">Partner pharmacies</div></div>
+      <div class="hero-stat"><div class="stat-n">&lt;8 min</div><div class="stat-l">Avg. reply time</div></div>
+      <div class="hero-stat"><div class="stat-n">98%</div><div class="stat-l">Medicine found rate</div></div>
+      <div class="hero-stat"><div class="stat-n">Free</div><div class="stat-l">Always for patients</div></div>
+    </div>
+  </section>
+
+  <!-- ═══ HOW IT WORKS ═══ -->
+  <section class="section" id="how">
+    <div class="section-inner">
+      <div class="section-tag fade-up">Process</div>
+      <div class="section-title fade-up">Four steps to get<br>your medicines</div>
+      <p class="section-sub fade-up">No more calling pharmacies one by one. MedRelay does the legwork for you.</p>
+
+      <div class="steps-grid">
+        <div class="card step-card fade-up">
+          <div class="step-num">01</div>
+          <div class="step-icon">📸</div>
+          <h3>Upload Prescription</h3>
+          <p>Take a clear photo of your doctor's prescription and upload it securely. Supports JPG, PNG, PDF.</p>
+        </div>
+        <div class="card step-card fade-up">
+          <div class="step-num">02</div>
+          <div class="step-icon">📡</div>
+          <h3>We Broadcast</h3>
+          <p>Your prescription is instantly forwarded to all verified pharmacies within your chosen search radius.</p>
+        </div>
+        <div class="card step-card fade-up">
+          <div class="step-num">03</div>
+          <div class="step-icon">💬</div>
+          <h3>Pharmacies Reply</h3>
+          <p>Licensed pharmacists review the prescription and respond with itemised availability and pricing.</p>
+        </div>
+        <div class="card step-card fade-up">
+          <div class="step-num">04</div>
+          <div class="step-icon">🛵</div>
+          <h3>Order or Pickup</h3>
+          <p>Choose the best offer and arrange home delivery or walk-in pickup — all through MedRelay.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ MAP PREVIEW CTA ═══ -->
+  <section class="section section-sand">
+    <div class="section-inner">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center" class="fade-up">
+        <div>
+          <div class="section-tag">Pharmacy Map</div>
+          <div class="section-title">See every pharmacy<br>near you on the map</div>
+          <p class="section-sub" style="max-width:100%">
+            Browse licensed pharmacies with real-time open/closed status, phone numbers,
+            ratings, and distance from you — all on an interactive map.
+          </p>
+          <div style="margin-top:32px;display:flex;gap:12px;flex-wrap:wrap">
+            <a href="{{ url_for('map_page') }}"    class="btn btn-navy">🗺️ Open Map</a>
+            <a href="{{ url_for('upload_page') }}" class="btn btn-outline">📄 Upload Prescription</a>
+          </div>
+        </div>
+        <!-- Map preview mockup -->
+        <div style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:var(--sh-lg);border:1px solid var(--border)">
+          <div style="background:linear-gradient(135deg,#e8f0ea 0%,#c5d9c5 100%);height:240px;position:relative;display:flex;align-items:center;justify-content:center">
+            <div style="text-align:center"><div style="font-size:46px;margin-bottom:8px">🗺️</div>
+            <div style="font-size:14px;font-weight:700;color:var(--navy)">Interactive Map</div>
+            <div style="font-size:12px;color:var(--muted)">8 pharmacies in Nagpur</div></div>
+            <div style="position:absolute;top:38px;left:58px;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">💊</div>
+            <div style="position:absolute;top:75px;right:75px;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">💊</div>
+            <div style="position:absolute;bottom:48px;left:115px;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">💊</div>
+            <div style="position:absolute;bottom:55px;right:48px;font-size:19px;opacity:.6">💊</div>
+          </div>
+          <div style="padding:16px;display:flex;gap:10px">
+            <div style="flex:1;background:var(--teal-l);border-radius:9px;padding:10px;font-size:12px">
+              <div style="font-weight:700;color:var(--navy)">LifeCare Pharmacy</div>
+              <div style="color:var(--muted);margin-top:2px">📍 1.2 km · 📞 0712-244-5678</div>
+            </div>
+            <div style="flex:1;background:var(--sand);border-radius:9px;padding:10px;font-size:12px">
+              <div style="font-weight:700;color:var(--navy)">Wellness Pharmacy</div>
+              <div style="color:var(--muted);margin-top:2px">📍 1.8 km · 📞 0712-277-3344</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FEATURES ═══ -->
+  <section class="section section-dark">
+    <div class="section-inner">
+      <div class="section-tag fade-up">Why MedRelay</div>
+      <div class="section-title fade-up">Built for patients,<br>trusted by pharmacists</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:50px">
+        {% set features = [
+          ('🔒','Secure & Encrypted','Prescriptions are AES-256 encrypted and auto-deleted after 48 hours.'),
+          ('⚡','Real-time Replies','Pharmacies receive instant alerts and respond within 5–10 minutes.'),
+          ('🗺️','Location-based','Only verified pharmacies within your chosen radius are notified.'),
+          ('✅','Verified Partners','Every pharmacy is drug-license verified and GST-registered.'),
+          ('📋','Full History','Track all your prescriptions, orders, and responses in one place.'),
+          ('🛵','Home Delivery','Many network pharmacies offer same-day home delivery.'),
+        ] %}
+        {% for icon, title, desc in features %}
+        <div class="fade-up" style="padding:22px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04)">
+          <div style="font-size:24px;margin-bottom:10px">{{ icon }}</div>
+          <h4 style="color:#fff;font-size:14px;margin-bottom:7px">{{ title }}</h4>
+          <p style="color:rgba(255,255,255,.44);font-size:13px;line-height:1.65">{{ desc }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CTA STRIP ═══ -->
+  <section class="section" style="padding:72px 24px;text-align:center">
+    <div class="section-inner">
+      <div class="section-title fade-up" style="margin:0 auto">Ready to get your medicines<br>without the hassle?</div>
+      <p class="section-sub fade-up" style="margin:16px auto 36px;text-align:center">Free for patients. Takes less than 60 seconds.</p>
+      <a href="{{ url_for('upload_page') }}" class="btn btn-primary fade-up" style="font-size:16px;padding:16px 40px">📄 Upload Your Prescription Now</a>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">Med<span>Relay</span></div>
+        <p class="footer-desc">Connecting patients to pharmacies across India. Backed by verified partners and a commitment to patient safety.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <a href="{{ url_for('upload_page') }}">Upload Prescription</a>
+        <a href="{{ url_for('map_page') }}">Find Pharmacies</a>
+        <a href="{{ url_for('responses_page') }}">View Responses</a>
+      </div>
+      <div class="footer-col">
+        <h4>For Pharmacies</h4>
+        <a href="#">Partner with us</a>
+        <a href="#">Pharmacist Login</a>
+        <a href="#">API Docs</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Drug Policy</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © 2026 MedRelay Technologies Pvt. Ltd. &nbsp;·&nbsp; Prescriptions handled per Indian pharmaceutical regulations.<br>
+      <span style="font-size:11px;opacity:.45;display:block;margin-top:5px">⚠️ Emergency? Call 112 or visit your nearest hospital immediately.</span>
+    </div>
+  </footer>
+
+</div><!-- /page -->
+
+<div id="toast"></div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+
+
+
+
+

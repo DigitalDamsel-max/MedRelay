@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharmacy Responses — MedRelay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .responses-wrap { max-width: 1120px; margin: 0 auto; padding: 52px 24px 80px; }
+
+    /* Track banner */
+    .track-banner {
+      display: none;
+      background: var(--teal-l); border: 1px solid rgba(13,158,138,.25);
+      border-radius: 14px; padding: 16px 22px; margin-bottom: 28px;
+      align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .tb-left           { display: flex; align-items: center; gap: 12px; }
+    .tb-icon           { font-size: 26px; }
+    .tb-text h4        { font-size: 13px; font-weight: 700; color: var(--teal-d); }
+    .tb-text p         { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .tb-id             { background: #fff; border: 1px solid rgba(13,158,138,.3); border-radius: 8px; padding: 7px 15px; font-family: monospace; font-size: 13px; color: var(--teal-d); font-weight: 700; }
+
+    /* Header */
+    .resp-header       { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+    .sort-row          { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+    .sort-row select   { padding: 8px 14px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--white); font-size: 13px; color: var(--text); cursor: pointer; font-family: var(--sans); outline: none; }
+
+    /* Progress card */
+    .resp-progress     { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; margin-bottom: 28px; box-shadow: var(--sh-sm); }
+    .rp-top            { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+    .rp-top h4         { font-size: 14px; font-weight: 700; color: var(--navy); }
+    .rp-top span       { font-size: 13px; color: var(--muted); }
+    .rp-bar            { height: 7px; background: var(--sand); border-radius: 99px; overflow: hidden; }
+    .rp-fill           { height: 100%; background: linear-gradient(90deg, var(--teal) 0%, var(--teal-d) 100%); border-radius: 99px; width: 0; transition: width .7s ease; }
+
+    /* Loading placeholder */
+    .loading-placeholder { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 60px 24px; color: var(--muted); font-size: 14px; background: var(--white); border: 1px solid var(--border); border-radius: var(--r); }
+    .mini-spinner { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--teal); animation: spin .7s linear infinite; flex-shrink: 0; }
+
+    /* Empty state */
+    .empty-state     { text-align: center; padding: 80px 24px; }
+    .empty-state .ei { font-size: 54px; margin-bottom: 14px; }
+    .empty-state h3  { font-family: var(--serif); font-size: 24px; color: var(--navy); margin-bottom: 10px; }
+    .empty-state p   { color: var(--muted); font-size: 15px; max-width: 400px; margin: 0 auto 26px; line-height: 1.65; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="{{ url_for('index') }}" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text">Med<span>Relay</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('index') }}">Home</a></li>
+    <li><a href="{{ url_for('upload_page') }}">Upload Rx</a></li>
+    <li><a href="{{ url_for('map_page') }}">Find Pharmacy</a></li>
+    <li><a href="{{ url_for('responses_page') }}">Responses</a></li>
+  </ul>
+  <a class="nav-cta" href="{{ url_for('upload_page') }}">📄 Upload Prescription</a>
+  <button class="nav-hamburger"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page">
+  <div class="responses-wrap">
+
+    <!-- Track Banner (shown if prescription was recently uploaded) -->
+    <div class="track-banner" id="trackBanner">
+      <div class="tb-left">
+        <div class="tb-icon">📡</div>
+        <div class="tb-text">
+          <h4>Broadcasting to <span id="bannerCount">—</span> pharmacies in <span id="bannerArea">your area</span></h4>
+          <p>Replies appear below as pharmacies respond · Avg. wait 5–10 minutes</p>
+        </div>
+      </div>
+      <div class="tb-id" id="bannerTrackId">MR-…</div>
+    </div>
+
+    <!-- Page heading + sort -->
+    <div class="resp-header">
+      <div>
+        <div class="section-tag">Live Responses</div>
+        <div class="section-title" style="font-size:clamp(24px,3.5vw,38px)">Pharmacy Replies</div>
+      </div>
+      <div class="sort-row">
+        Sort:
+        <select id="sortSelect">
+          <option value="time">Most recent</option>
+          <option value="price">Lowest price</option>
+          <option value="dist">Nearest first</option>
+        </select>
+        <a href="{{ url_for('upload_page') }}" class="btn btn-outline btn-sm">+ New Rx</a>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="resp-progress">
+      <div class="rp-top">
+        <h4>Responses received: <strong id="receivedCount">0</strong></h4>
+        <span>⏳ Updates appear automatically</span>
+      </div>
+      <div class="rp-bar"><div class="rp-fill" id="respProgressFill"></div></div>
+    </div>
+
+    <!-- Response cards (populated by responses.js) -->
+    <div class="response-grid" id="responseGrid">
+      <div class="loading-placeholder">
+        <div class="mini-spinner"></div>
+        Waiting for pharmacy responses…
+      </div>
+    </div>
+
+    <!-- Empty state (shown by JS when no prescription exists) -->
+    <div id="emptyState" style="display:none">
+      <div class="empty-state">
+        <div class="ei">🧾</div>
+        <h3>No prescription uploaded yet</h3>
+        <p>Upload your prescription first and pharmacy responses will appear here as they arrive in real time.</p>
+        <a href="{{ url_for('upload_page') }}" class="btn btn-primary">📄 Upload Prescription</a>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="footer" style="padding:28px 48px 22px">
+    <div class="footer-bottom" style="border-top:none;padding-top:0;text-align:left;color:rgba(255,255,255,.3);font-size:12px">
+      Responses are from independently licensed pharmacies. MedRelay does not endorse any specific pharmacy. Always verify your prescription is dispensed correctly.
+      &nbsp;·&nbsp; © 2026 MedRelay Technologies Pvt. Ltd.
+    </div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/responses.js') }}"></script>
+</body>
+</html>

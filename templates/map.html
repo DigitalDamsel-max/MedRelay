@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Pharmacies — MedRelay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Leaflet CSS (free, no API key) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <style>
+    /* Full-height map layout */
+    body, .page { overflow: hidden; height: 100vh; }
+
+    .map-layout {
+      display: grid;
+      grid-template-columns: 370px 1fr;
+      height: calc(100vh - var(--nav-h));
+    }
+
+    #mapEl { width: 100%; height: 100%; }
+
+    /* Mobile: stack vertically */
+    @media (max-width: 768px) {
+      body, .page { overflow: auto; height: auto; }
+      .map-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 55vh;
+        height: auto;
+      }
+      .map-sidebar { max-height: 45vh; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="{{ url_for('index') }}" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text">Med<span>Relay</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('index') }}">Home</a></li>
+    <li><a href="{{ url_for('upload_page') }}">Upload Rx</a></li>
+    <li><a href="{{ url_for('map_page') }}">Find Pharmacy</a></li>
+    <li><a href="{{ url_for('responses_page') }}">Responses</a></li>
+  </ul>
+  <button class="nav-cta" data-url="{{ url_for('upload_page') }}" onclick="location.href=this.dataset.url">📄 Upload Prescription</button>
+  <button class="nav-hamburger"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page">
+  <div class="map-layout">
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="map-sidebar">
+      <div class="map-sidebar-head">
+        <h2>🗺️ Nearby Pharmacies</h2>
+        <div class="map-search-wrap">
+          <span class="map-search-icon">🔍</span>
+          <input class="form-input" id="mapSearch" type="text" placeholder="Search name or area…">
+        </div>
+        <div class="sidebar-meta">
+          <span>Showing <strong id="pharmCount">—</strong> pharmacies</span>
+          <span>📍 Nagpur, MH</span>
+        </div>
+      </div>
+
+      <!-- Pharmacy list injected by map.js -->
+      <div id="pharmList">
+        <div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">
+          <div style="font-size:32px;margin-bottom:8px">⏳</div>
+          Loading pharmacies…
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══ MAP ═══ -->
+    <div class="map-container">
+      <div id="mapEl"></div>
+
+      <!-- Locate me button -->
+      <button class="map-locate-btn" id="locateBtn">
+        📍 Locate Me
+      </button>
+
+      <!-- Radius control -->
+      <div class="map-radius-bar">
+        <span>Radius</span>
+        <input type="range" id="mapRadius" min="1" max="20" value="5">
+        <span id="mapRadiusVal">5 km</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Leaflet JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+</body>
+</html>

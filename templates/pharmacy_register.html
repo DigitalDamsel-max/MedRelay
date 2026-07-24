@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register Your Pharmacy — MedRelay</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  .reg-page { max-width:960px; margin:0 auto; padding:56px 24px 80px; }
+  .reg-hero  { text-align:center; margin-bottom:44px; }
+  .reg-hero h1 { font-family:var(--serif); font-size:clamp(28px,4vw,46px); color:var(--navy); }
+  .reg-hero p  { color:var(--muted); font-size:16px; margin-top:12px; }
+
+  .reg-card { background:var(--white); border-radius:20px; border:1px solid var(--border); box-shadow:var(--shadow); overflow:hidden; }
+
+  /* Steps header */
+  .steps-bar { display:flex; border-bottom:1px solid var(--border); }
+  .step-tab  { flex:1; padding:18px 12px; text-align:center; font-size:13px; font-weight:600; color:var(--muted); border-bottom:3px solid transparent; cursor:pointer; transition:.2s; }
+  .step-tab.active { color:var(--teal-d); border-color:var(--teal); background:var(--teal-ll); }
+  .step-tab.done   { color:var(--success); border-color:var(--success); }
+
+  /* Panels */
+  .step-panel { display:none; padding:36px 40px; }
+  .step-panel.active { display:block; }
+  @media(max-width:600px){ .step-panel{ padding:24px 18px; } }
+
+  .section-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--teal); margin:24px 0 14px; }
+  .section-label:first-child { margin-top:0; }
+
+  /* Map picker */
+  .map-picker-wrap { border:2px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:18px; position:relative; }
+  #locationPickerMap { height:320px; width:100%; }
+  .map-picker-hint {
+    position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:500;
+    background:var(--navy); color:#fff; font-size:12px; font-weight:600;
+    padding:7px 16px; border-radius:99px; white-space:nowrap;
+    box-shadow:var(--shadow); pointer-events:none;
+  }
+  .map-picker-actions {
+    display:flex; gap:10px; padding:12px 14px;
+    background:var(--cream); border-top:1px solid var(--border);
+  }
+  .map-loc-btn {
+    display:flex; align-items:center; gap:7px; padding:9px 18px;
+    border-radius:9px; font-size:13px; font-weight:700; cursor:pointer;
+    border:none; transition:.2s;
+  }
+  .btn-gps  { background:var(--teal);  color:#fff; }
+  .btn-gps:hover { background:var(--teal-d); }
+  .btn-reset{ background:var(--white); color:var(--navy); border:1.5px solid var(--border); }
+  .btn-reset:hover { border-color:var(--teal); }
+  .lat-lng-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .coords-display { background:var(--teal-ll); border:1px solid rgba(13,158,138,.2); border-radius:10px; padding:10px 14px; font-size:13px; color:var(--teal-d); font-weight:600; font-family:monospace; }
+
+  /* Delivery toggle */
+  .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); }
+  .toggle-label { font-size:14px; font-weight:600; color:var(--navy); }
+  .toggle-sub   { font-size:12px; color:var(--muted); margin-top:2px; }
+  .toggle-switch { position:relative; width:48px; height:26px; flex-shrink:0; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider {
+    position:absolute; inset:0; background:#ccc; border-radius:99px; cursor:pointer; transition:.3s;
+  }
+  .toggle-slider::before {
+    content:''; position:absolute; height:20px; width:20px; left:3px; bottom:3px;
+    background:#fff; border-radius:50%; transition:.3s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background:var(--teal); }
+  .toggle-switch input:checked + .toggle-slider::before { transform:translateX(22px); }
+
+  /* Hours row */
+  .hours-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+  /* Logo upload */
+  .logo-drop { border:2px dashed var(--border); border-radius:12px; padding:28px; text-align:center; cursor:pointer; position:relative; transition:.2s; }
+  .logo-drop:hover { border-color:var(--teal); background:var(--teal-ll); }
+  .logo-drop input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .logo-preview { width:80px; height:80px; border-radius:12px; object-fit:cover; margin:0 auto 8px; display:none; }
+
+  /* Nav buttons */
+  .step-nav { display:flex; justify-content:space-between; margin-top:32px; gap:12px; }
+
+  /* Success */
+  .success-wrap { text-align:center; padding:48px 24px; }
+  .success-wrap .big-icon { font-size:64px; margin-bottom:20px; animation:popIn .4s ease both; }
+  .success-wrap h2 { font-family:var(--serif); font-size:32px; color:var(--navy); }
+  .success-wrap p  { color:var(--muted); font-size:15px; margin-top:12px; line-height:1.7; max-width:480px; margin-inline:auto; }
+
+  @keyframes popIn { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text"><em>Med</em><span>Relay</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/upload">Upload Rx</a></li>
+    <li><a href="/map">Find Pharmacy</a></li>
+    <li><a href="/pharmacy/login">Pharmacist Login</a></li>
+  </ul>
+  <button class="nav-cta" onclick="location.href='/pharmacy/login'">Pharmacist Login</button>
+  <button class="nav-burger"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page">
+<div class="reg-page">
+
+  <div class="reg-hero fade-up">
+    <div class="section-tag" style="justify-content:center;display:flex">For Pharmacies</div>
+    <h1>Register your pharmacy<br>on MedRelay</h1>
+    <p>Join 340+ partner pharmacies. Receive prescription requests directly from patients near you.</p>
+  </div>
+
+  <!-- Registration Card -->
+  <div class="reg-card fade-up" id="regCard">
+
+    <!-- Step tabs -->
+    <div class="steps-bar">
+      <div class="step-tab active" data-step="1">① Basic Info</div>
+      <div class="step-tab" data-step="2">② Location</div>
+      <div class="step-tab" data-step="3">③ Operations</div>
+      <div class="step-tab" data-step="4">④ Account</div>
+    </div>
+
+    <!-- ── STEP 1: Basic Info ── -->
+    <div class="step-panel active" id="step1">
+      <div class="section-label">Pharmacy Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Pharmacy Name *</label>
+          <input class="form-input" id="r_name" type="text" placeholder="e.g. LifeCare Pharmacy">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Proprietor / Owner Name</label>
+          <input class="form-input" id="r_proprietor" type="text" placeholder="Dr. Full Name">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Phone Number *</label>
+          <input class="form-input" id="r_phone" type="tel" placeholder="0712-244-5678">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Alternate Phone</label>
+          <input class="form-input" id="r_alt_phone" type="tel" placeholder="Optional">
+        </div>
+      </div>
+      <div class="section-label">Legal Documents</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Drug License Number *</label>
+          <input class="form-input" id="r_drug_license" type="text" placeholder="MH-DL-2024-XXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">GST Number</label>
+          <input class="form-input" id="r_gst" type="text" placeholder="27XXXXX">
+        </div>
+      </div>
+      <div class="section-label">Logo (Optional)</div>
+      <div class="logo-drop" id="logoDrop">
+        <input type="file" id="r_logo" accept="image/*" onchange="previewLogo(this)">
+        <img id="logoPreview" class="logo-preview" alt="Logo preview">
+        <div id="logoPlaceholder">
+          <div style="font-size:32px;margin-bottom:8px">🏥</div>
+          <div style="font-size:14px;font-weight:600;color:var(--navy)">Upload pharmacy logo</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">PNG or JPG, max 2MB</div>
+        </div>
+      </div>
+      <div class="step-nav">
+        <span></span>
+        <button class="btn btn-primary" onclick="goStep(2)">Next: Location →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Location ── -->
+    <div class="step-panel" id="step2">
+      <div class="section-label">Pick Your Pharmacy Location on the Map</div>
+      <div class="map-picker-wrap">
+        <div id="locationPickerMap"></div>
+        <div class="map-picker-hint" id="mapHint">📍 Click on the map or drag the pin to your pharmacy</div>
+        <div class="map-picker-actions">
+          <button class="map-loc-btn btn-gps" onclick="useGPS()">📍 Use My Current Location</button>
+          <button class="map-loc-btn btn-reset" onclick="resetPin()">↩ Reset</button>
+          <span id="coordsDisplay" class="coords-display" style="flex:1;text-align:center">No location selected</span>
+        </div>
+      </div>
+
+      <div class="section-label">Address Details</div>
+      <div class="form-group">
+        <label class="form-label">Street Address *</label>
+        <input class="form-input" id="r_address" type="text" placeholder="Shop No., Street, Landmark">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Area / Locality *</label>
+          <input class="form-input" id="r_area" type="text" placeholder="e.g. Civil Lines">
+        </div>
+        <div class="form-group">
+          <label class="form-label">City *</label>
+          <input class="form-input" id="r_city" type="text" placeholder="e.g. Nagpur">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">PIN Code *</label>
+          <input class="form-input" id="r_pincode" type="text" maxlength="6" placeholder="440001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <input class="form-input" id="r_state" type="text" value="Maharashtra">
+        </div>
+      </div>
+      <!-- Hidden lat/lng -->
+      <input type="hidden" id="r_lat">
+      <input type="hidden" id="r_lng">
+
+      <div class="step-nav">
+        <button class="btn btn-outline" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Next: Operations →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: Operations ── -->
+    <div class="step-panel" id="step3">
+      <div class="section-label">Opening Hours</div>
+      <div class="hours-row">
+        <div class="form-group">
+          <label class="form-label">Opening Time *</label>
+          <input class="form-input" id="r_open_time" type="time" value="09:00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Closing Time *</label>
+          <input class="form-input" id="r_close_time" type="time" value="21:00">
+        </div>
+      </div>
+
+      <div class="section-label">Services</div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Home Delivery</div>
+          <div class="toggle-sub">Offer delivery to patients in your area</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="r_delivery" onchange="toggleDelivery(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div id="deliveryRadiusWrap" style="display:none;padding:14px 0">
+        <label class="form-label">Delivery Radius</label>
+        <div style="display:flex;align-items:center;gap:16px;margin-top:8px">
+          <input type="range" id="r_del_radius" min="1" max="20" value="5"
+            oninput="document.getElementById('delRadiusVal').textContent=this.value+' km'"
+            style="flex:1;accent-color:var(--teal)">
+          <span id="delRadiusVal" style="font-size:14px;font-weight:800;color:var(--teal);min-width:44px">5 km</span>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">24-Hour Service</div>
+          <div class="toggle-sub">Pharmacy operates round the clock</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="r_24h" onchange="toggle24h(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="step-nav">
+        <button class="btn btn-outline" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="goStep(4)">Next: Create Account →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: Account ── -->
+    <div class="step-panel" id="step4">
+      <div class="section-label">Login Credentials</div>
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
+        <input class="form-input" id="r_email" type="email" placeholder="pharmacy@yourdomain.com">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input class="form-input" id="r_password" type="password" placeholder="Min. 8 characters">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password *</label>
+          <input class="form-input" id="r_confirm_pw" type="password" placeholder="Repeat password">
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div style="background:var(--teal-ll);border:1px solid rgba(13,158,138,.2);border-radius:12px;padding:18px 20px;margin-top:16px">
+        <div style="font-size:13px;font-weight:700;color:var(--teal-d);margin-bottom:10px">📋 Registration Summary</div>
+        <div id="summaryBlock" style="font-size:13px;color:var(--text);line-height:1.8"></div>
+      </div>
+
+      <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6">
+        By registering you agree to our <a href="#" style="color:var(--teal)">Terms of Service</a> and
+        <a href="#" style="color:var(--teal)">Pharmacy Partner Agreement</a>.
+        Your registration will be reviewed by our team within 24 hours.
+      </p>
+
+      <div class="step-nav">
+        <button class="btn btn-outline" onclick="goStep(3)">← Back</button>
+        <button class="btn btn-primary" id="submitRegBtn" onclick="submitRegistration()">
+          <span id="submitRegText">✅ Submit Registration</span>
+          <div class="spinner" id="submitRegSpinner"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── SUCCESS ── -->
+    <div class="step-panel" id="stepSuccess">
+      <div class="success-wrap">
+        <div class="big-icon">🎉</div>
+        <h2>Registration Submitted!</h2>
+        <p>
+          Your pharmacy has been registered on MedRelay.<br>
+          Our team will <strong>verify your drug license within 24 hours</strong>.<br>
+          You'll receive a confirmation email once approved.
+        </p>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap">
+          <a href="/pharmacy/login" class="btn btn-primary">🔑 Go to Login</a>
+          <a href="/" class="btn btn-outline">🏠 Back to Home</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /reg-card -->
+</div><!-- /reg-page -->
+</div><!-- /page -->
+
+<div id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+/* ── Step navigation ── */
+let currentStep = 1;
+const TOTAL = 4;
+
+function goStep(n) {
+  if (n > currentStep && !validateStep(currentStep)) return;
+  currentStep = n;
+  document.querySelectorAll('.step-panel').forEach((p,i) => {
+    p.classList.toggle('active', i === n-1);
+  });
+  document.querySelectorAll('.step-tab').forEach((t,i) => {
+    t.classList.toggle('active', i === n-1);
+    t.classList.toggle('done', i < n-1);
+  });
+  if (n === 2) initMap();
+  if (n === 4) buildSummary();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function validateStep(n) {
+  const required = {
+    1: [['r_name','Pharmacy name'],['r_phone','Phone number'],['r_drug_license','Drug license number']],
+    2: [['r_address','Street address'],['r_area','Area'],['r_city','City'],['r_pincode','PIN code']],
+    3: [],
+    4: [['r_email','Email'],['r_password','Password'],['r_confirm_pw','Confirm password']],
+  };
+  for (const [id, label] of (required[n] || [])) {
+    if (!document.getElementById(id)?.value.trim()) {
+      showToast(`⚠️ ${label} is required`, 'error');
+      document.getElementById(id)?.focus();
+      return false;
+    }
+  }
+  if (n === 2 && !document.getElementById('r_lat').value) {
+    showToast('⚠️ Please select your pharmacy location on the map', 'error');
+    return false;
+  }
+  if (n === 4) {
+    if (document.getElementById('r_password').value.length < 8) {
+      showToast('⚠️ Password must be at least 8 characters', 'error');
+      return false;
+    }
+    if (document.getElementById('r_password').value !== document.getElementById('r_confirm_pw').value) {
+      showToast('⚠️ Passwords do not match', 'error');
+      return false;
+    }
+  }
+  return true;
+}
+
+/* ── Map picker ── */
+let pickerMap = null, pickerMarker = null, mapInited = false;
+
+function initMap() {
+  if (mapInited) return;
+  mapInited = true;
+  const DEFAULT = [20.5937, 78.9629]; // India centre
+  pickerMap = L.map('locationPickerMap').setView(DEFAULT, 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {attribution:'© OpenStreetMap contributors', maxZoom:19}).addTo(pickerMap);
+
+  pickerMap.on('click', e => placePin(e.latlng.lat, e.latlng.lng));
+  document.getElementById('mapHint').textContent = '📍 Click on map or use GPS to set your location';
+}
+
+function placePin(lat, lng) {
+  if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+  pickerMarker = L.marker([lat, lng], {draggable:true}).addTo(pickerMap);
+  pickerMarker.on('dragend', e => {
+    const p = e.target.getLatLng();
+    setCoords(p.lat, p.lng);
+    reverseGeocode(p.lat, p.lng);
+  });
+  pickerMap.setView([lat, lng], 17);
+  setCoords(lat, lng);
+  reverseGeocode(lat, lng);
+  document.getElementById('mapHint').textContent = '✅ Location set — drag pin to adjust';
+}
+
+function setCoords(lat, lng) {
+  document.getElementById('r_lat').value = lat;
+  document.getElementById('r_lng').value = lng;
+  document.getElementById('coordsDisplay').textContent =
+    `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      {headers:{'User-Agent':'MedRelay/1.0'}});
+    const d = await r.json();
+    const a = d.address || {};
+    if (a['road'] || a['street'])
+      document.getElementById('r_address').value = [a.road||a.street, a.house_number].filter(Boolean).join(' ');
+    document.getElementById('r_area').value    = a.suburb || a.neighbourhood || a.quarter || '';
+    document.getElementById('r_city').value    = a.city || a.town || a.village || '';
+    document.getElementById('r_state').value   = a.state || '';
+    document.getElementById('r_pincode').value = a.postcode || '';
+  } catch(e) {}
+}
+
+function useGPS() {
+  if (!navigator.geolocation) return showToast('⚠️ GPS not supported');
+  showToast('🔍 Getting your location…');
+  navigator.geolocation.getCurrentPosition(
+    pos => { placePin(pos.coords.latitude, pos.coords.longitude); showToast('📍 Location set!','success'); },
+    () => showToast('⚠️ Could not get GPS location', 'error'),
+    {enableHighAccuracy:true, timeout:8000}
+  );
+}
+
+function resetPin() {
+  if (pickerMarker) { pickerMap.removeLayer(pickerMarker); pickerMarker=null; }
+  document.getElementById('r_lat').value = '';
+  document.getElementById('r_lng').value = '';
+  document.getElementById('coordsDisplay').textContent = 'No location selected';
+  document.getElementById('mapHint').textContent = '📍 Click on map or use GPS to set your location';
+}
+
+/* ── Toggles ── */
+function toggleDelivery(cb) {
+  document.getElementById('deliveryRadiusWrap').style.display = cb.checked ? 'block' : 'none';
+}
+function toggle24h(cb) {
+  const ot = document.getElementById('r_open_time');
+  const ct = document.getElementById('r_close_time');
+  if (cb.checked) { ot.value='00:00'; ct.value='23:59'; ot.disabled=true; ct.disabled=true; }
+  else            { ot.disabled=false; ct.disabled=false; }
+}
+
+/* ── Logo preview ── */
+function previewLogo(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('logoPreview');
+    img.src = e.target.result; img.style.display='block';
+    document.getElementById('logoPlaceholder').style.display='none';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+/* ── Summary ── */
+function buildSummary() {
+  const fields = [
+    ['Pharmacy', document.getElementById('r_name')?.value],
+    ['Phone',    document.getElementById('r_phone')?.value],
+    ['Drug Lic', document.getElementById('r_drug_license')?.value],
+    ['Address',  document.getElementById('r_address')?.value + ', ' + document.getElementById('r_area')?.value],
+    ['City',     document.getElementById('r_city')?.value + ' – ' + document.getElementById('r_pincode')?.value],
+    ['Hours',    document.getElementById('r_open_time')?.value + ' – ' + document.getElementById('r_close_time')?.value],
+    ['Delivery', document.getElementById('r_delivery')?.checked ? '✅ Yes' : '❌ No'],
+    ['Email',    document.getElementById('r_email')?.value],
+  ];
+  document.getElementById('summaryBlock').innerHTML = fields
+    .map(([k,v]) => `<div><strong>${k}:</strong> ${v||'—'}</div>`).join('');
+}
+
+/* ── Submit ── */
+async function submitRegistration() {
+  if (!validateStep(4)) return;
+  const btn = document.getElementById('submitRegBtn');
+  const sp  = document.getElementById('submitRegSpinner');
+  const bt  = document.getElementById('submitRegText');
+  btn.disabled=true; sp.style.display='block'; bt.textContent='Submitting…';
+
+  const fd = new FormData();
+  fd.append('name',            document.getElementById('r_name').value.trim());
+  fd.append('proprietor',      document.getElementById('r_proprietor').value.trim());
+  fd.append('phone',           document.getElementById('r_phone').value.trim());
+  fd.append('alt_phone',       document.getElementById('r_alt_phone').value.trim());
+  fd.append('drug_license',    document.getElementById('r_drug_license').value.trim());
+  fd.append('gst',             document.getElementById('r_gst').value.trim());
+  fd.append('email',           document.getElementById('r_email').value.trim());
+  fd.append('password',        document.getElementById('r_password').value);
+  fd.append('address',         document.getElementById('r_address').value.trim());
+  fd.append('area',            document.getElementById('r_area').value.trim());
+  fd.append('city',            document.getElementById('r_city').value.trim());
+  fd.append('pincode',         document.getElementById('r_pincode').value.trim());
+  fd.append('lat',             document.getElementById('r_lat').value);
+  fd.append('lng',             document.getElementById('r_lng').value);
+  fd.append('opening_time',    document.getElementById('r_open_time').value);
+  fd.append('closing_time',    document.getElementById('r_close_time').value);
+  fd.append('accepts_delivery',document.getElementById('r_delivery').checked ? 'true' : 'false');
+  fd.append('delivery_radius', document.getElementById('r_del_radius').value);
+  const logo = document.getElementById('r_logo').files[0];
+  if (logo) fd.append('logo', logo);
+
+  try {
+    const res  = await fetch('/api/pharmacy/register', {method:'POST', body:fd});
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    // Show success step
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('stepSuccess').classList.add('active');
+    document.querySelectorAll('.step-tab').forEach(t => t.classList.add('done'));
+  } catch(err) {
+    showToast('❌ ' + err.message, 'error');
+    btn.disabled=false; sp.style.display='none'; bt.textContent='✅ Submit Registration';
+  }
+}
+</script>
+</body>
+</html>

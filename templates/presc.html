@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedRelay — Prescription to Pharmacy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal:    #0d9e8a;
+    --teal-d:  #077a6b;
+    --teal-l:  #e6f7f5;
+    --navy:    #0c1f3f;
+    --cream:   #faf8f4;
+    --sand:    #f0ece3;
+    --text:    #1a2b3c;
+    --muted:   #6b7f92;
+    --white:   #ffffff;
+    --success: #22c55e;
+    --warn:    #f59e0b;
+    --danger:  #ef4444;
+    --shadow:  0 4px 24px rgba(12,31,63,.10);
+    --shadow-lg: 0 12px 48px rgba(12,31,63,.15);
+    --r: 16px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 48px;
+    background: rgba(250,248,244,.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(13,158,138,.12);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-d) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--navy); }
+  .logo-text span { color: var(--teal); }
+  nav ul { list-style: none; display: flex; gap: 32px; }
+  nav ul a { text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 500; transition: color .2s; }
+  nav ul a:hover { color: var(--teal); }
+  .nav-cta {
+    background: var(--navy); color: var(--white);
+    border: none; border-radius: 10px;
+    padding: 10px 22px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background .2s;
+  }
+  .nav-cta:hover { background: var(--teal); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 140px 24px 80px;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 40%, rgba(13,158,138,.08) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 80% 60%, rgba(12,31,63,.06) 0%, transparent 70%);
+  }
+  .hero-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--teal-l); border: 1px solid rgba(13,158,138,.25);
+    color: var(--teal-d); border-radius: 100px;
+    padding: 6px 16px; font-size: 13px; font-weight: 600;
+    margin-bottom: 28px; z-index: 1;
+    animation: fadeUp .6s ease both;
+  }
+  .hero-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(38px,6vw,72px); line-height: 1.08;
+    color: var(--navy); z-index: 1;
+    animation: fadeUp .7s .1s ease both;
+  }
+  h1 em { color: var(--teal); font-style: italic; }
+  .hero-sub {
+    max-width: 560px; margin: 24px auto 0;
+    color: var(--muted); font-size: 17px; line-height: 1.65;
+    z-index: 1; animation: fadeUp .7s .2s ease both;
+  }
+  .hero-btns {
+    display: flex; gap: 14px; margin-top: 40px; z-index: 1;
+    animation: fadeUp .7s .3s ease both;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .btn-primary {
+    background: var(--teal); color: var(--white);
+    border: none; border-radius: 12px;
+    padding: 15px 32px; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 4px 16px rgba(13,158,138,.35);
+  }
+  .btn-primary:hover { background: var(--teal-d); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(13,158,138,.45); }
+  .btn-secondary {
+    background: var(--white); color: var(--navy);
+    border: 2px solid rgba(12,31,63,.12); border-radius: 12px;
+    padding: 14px 28px; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: border-color .2s, background .2s;
+  }
+  .btn-secondary:hover { border-color: var(--teal); background: var(--teal-l); }
+
+  .hero-stats {
+    display: flex; gap: 48px; margin-top: 64px; z-index: 1;
+    animation: fadeUp .7s .4s ease both;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-family: 'DM Serif Display', serif; font-size: 34px; color: var(--navy); }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .stat-sep { width: 1px; background: rgba(12,31,63,.12); align-self: stretch; }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ── HOW IT WORKS ── */
+  .section { padding: 100px 24px; }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+  .section-tag { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-bottom: 12px; }
+  .section-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px,4vw,44px); color: var(--navy); line-height: 1.15; }
+  .section-sub { color: var(--muted); font-size: 16px; line-height: 1.65; margin-top: 14px; max-width: 540px; }
+
+  .steps-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 24px; margin-top: 56px; }
+  .step-card {
+    background: var(--white); border-radius: var(--r);
+    padding: 36px 28px; box-shadow: var(--shadow);
+    border: 1px solid rgba(12,31,63,.06);
+    position: relative; overflow: hidden;
+    transition: transform .25s, box-shadow .25s;
+  }
+  .step-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+  .step-num {
+    position: absolute; top: 20px; right: 20px;
+    font-family: 'DM Serif Display', serif; font-size: 56px;
+    color: var(--teal-l); line-height: 1;
+    user-select: none;
+  }
+  .step-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--teal-l); display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin-bottom: 20px;
+  }
+  .step-card h3 { font-size: 17px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+  .step-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* ── UPLOAD FORM ── */
+  .upload-section { background: var(--navy); padding: 100px 24px; position: relative; overflow: hidden; }
+  .upload-section::before {
+    content: ''; position: absolute;
+    top: -120px; right: -120px;
+    width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(13,158,138,.15) 0%, transparent 70%);
+  }
+  .upload-inner { max-width: 860px; margin: 0 auto; }
+  .upload-section .section-tag { color: rgba(13,158,138,.9); }
+  .upload-section .section-title { color: var(--white); }
+  .upload-section .section-sub { color: rgba(255,255,255,.55); }
+
+  .upload-card {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px; padding: 40px;
+    margin-top: 48px; backdrop-filter: blur(8px);
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media(max-width:600px){ .form-row{ grid-template-columns:1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-group label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.7); letter-spacing: .03em; }
+  .form-group input, .form-group select, .form-group textarea {
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 10px; color: var(--white);
+    padding: 12px 16px; font-size: 14px; font-family: 'DM Sans',sans-serif;
+    outline: none; transition: border-color .2s, background .2s;
+  }
+  .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,.3); }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--teal); background: rgba(255,255,255,.12);
+  }
+  .form-group select option { background: var(--navy); color: var(--white); }
+  .form-group textarea { resize: vertical; min-height: 90px; }
+
+  /* Drop Zone */
+  .drop-zone {
+    border: 2px dashed rgba(13,158,138,.4);
+    border-radius: 14px; padding: 48px 24px;
+    text-align: center; cursor: pointer;
+    transition: border-color .25s, background .25s;
+    background: rgba(13,158,138,.04);
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--teal); background: rgba(13,158,138,.1);
+  }
+  .drop-zone input[type="file"] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+  .drop-icon { font-size: 42px; margin-bottom: 12px; }
+  .drop-title { color: var(--white); font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .drop-sub { color: rgba(255,255,255,.4); font-size: 13px; }
+  .drop-sub span { color: var(--teal); font-weight: 600; }
+
+  .preview-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .preview-item {
+    position: relative; border-radius: 10px; overflow: hidden;
+    width: 90px; height: 90px;
+    border: 2px solid rgba(13,158,138,.4);
+  }
+  .preview-item img { width:100%;height:100%;object-fit:cover; }
+  .preview-item .remove {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(0,0,0,.6); color: #fff;
+    border: none; border-radius: 50%;
+    width: 20px; height: 20px; font-size: 11px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .radius-row { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+  .radius-row label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.7); white-space: nowrap; }
+  .radius-row input[type=range] { flex:1; accent-color: var(--teal); }
+  .radius-val { font-size: 14px; font-weight: 700; color: var(--teal); min-width: 48px; }
+
+  .submit-btn {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-d) 100%);
+    color: var(--white); font-size: 16px; font-weight: 700;
+    border: none; border-radius: 12px; cursor: pointer;
+    transition: opacity .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 4px 20px rgba(13,158,138,.4);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .submit-btn:hover { opacity:.92; transform:translateY(-2px); box-shadow: 0 8px 28px rgba(13,158,138,.5); }
+  .submit-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+  /* ── SUCCESS / TRACKING ── */
+  .success-panel {
+    display: none; text-align: center; padding: 32px 0;
+  }
+  .success-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(34,197,94,.15); border: 2px solid rgba(34,197,94,.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; margin: 0 auto 20px;
+    animation: popIn .4s ease both;
+  }
+  @keyframes popIn { from{transform:scale(0)}to{transform:scale(1)} }
+  .success-panel h3 { color: var(--white); font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .success-panel p { color: rgba(255,255,255,.55); font-size: 14px; line-height: 1.6; }
+  .track-id { display: inline-block; margin-top: 16px; background: rgba(13,158,138,.2); border: 1px solid rgba(13,158,138,.4); border-radius: 8px; padding: 8px 18px; font-size: 14px; font-family: monospace; color: var(--teal); letter-spacing: .08em; }
+
+  /* Progress bar */
+  .progress-wrap { margin-top: 28px; text-align: left; }
+  .progress-label { font-size: 12px; color: rgba(255,255,255,.5); margin-bottom: 6px; font-weight: 600; letter-spacing: .05em; }
+  .progress-bar { height: 6px; background: rgba(255,255,255,.1); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--teal); border-radius: 99px; width: 0; transition: width .6s ease; }
+
+  /* ── PHARMACY RESPONSES (DEMO) ── */
+  .responses-section { padding: 100px 24px; }
+  .responses-inner { max-width: 1100px; margin: 0 auto; }
+
+  .pharmacy-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 20px; margin-top: 48px; }
+  .pharm-card {
+    background: var(--white); border-radius: var(--r);
+    border: 1px solid rgba(12,31,63,.08); box-shadow: var(--shadow);
+    overflow: hidden; transition: transform .25s, box-shadow .25s;
+  }
+  .pharm-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .pharm-header {
+    padding: 20px 24px; border-bottom: 1px solid rgba(12,31,63,.06);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .pharm-avatar {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .pharm-name { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .pharm-dist { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .status-badge {
+    margin-left: auto; padding: 4px 12px;
+    border-radius: 99px; font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  }
+  .badge-avail { background: rgba(34,197,94,.12); color: #16a34a; border: 1px solid rgba(34,197,94,.25); }
+  .badge-partial { background: rgba(245,158,11,.12); color: #b45309; border: 1px solid rgba(245,158,11,.25); }
+  .badge-wait { background: rgba(107,127,146,.1); color: var(--muted); border: 1px solid rgba(107,127,146,.2); }
+
+  .pharm-body { padding: 20px 24px; }
+  .med-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .med-item { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+  .med-name { color: var(--text); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .med-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--success); }
+  .dot-red { background: var(--danger); }
+  .dot-yellow { background: var(--warn); }
+  .med-price { font-weight: 700; color: var(--navy); }
+
+  .pharm-footer { padding: 16px 24px; border-top: 1px solid rgba(12,31,63,.06); display: flex; align-items: center; justify-content: space-between; }
+  .total-price { font-size: 13px; color: var(--muted); }
+  .total-price strong { font-size: 17px; font-weight: 800; color: var(--navy); }
+  .order-btn {
+    background: var(--teal); color: var(--white);
+    border: none; border-radius: 9px;
+    padding: 9px 20px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: background .2s;
+  }
+  .order-btn:hover { background: var(--teal-d); }
+  .order-btn:disabled { background: rgba(12,31,63,.12); color: var(--muted); cursor: not-allowed; }
+
+  /* reply time */
+  .reply-time { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+  .reply-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 1.5s infinite; }
+
+  /* ── FEATURES ── */
+  .features-section { background: var(--sand); padding: 100px 24px; }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 20px; margin-top: 56px; }
+  .feat-card {
+    background: var(--white); border-radius: 14px;
+    padding: 28px 24px; border: 1px solid rgba(12,31,63,.06);
+  }
+  .feat-icon { font-size: 28px; margin-bottom: 14px; }
+  .feat-card h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .feat-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy); color: rgba(255,255,255,.5);
+    text-align: center; padding: 40px 24px;
+    font-size: 14px; line-height: 1.7;
+  }
+  footer strong { color: rgba(255,255,255,.85); }
+
+  /* Loading spinner */
+  .spinner {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    animation: spin .7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* Notification toast */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--navy); color: #fff;
+    padding: 14px 28px; border-radius: 12px;
+    font-size: 14px; font-weight: 500;
+    box-shadow: var(--shadow-lg); z-index: 999;
+    opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media(max-width:768px){
+    nav { padding: 14px 20px; }
+    nav ul { display:none; }
+    .hero { padding: 120px 20px 60px; }
+    .upload-card { padding: 24px 18px; }
+    .hero-stats { gap:24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">💊</div>
+    <div class="logo-text">Med<span>Relay</span></div>
+  </div>
+  <ul>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#upload">Upload</a></li>
+    <li><a href="#responses">Responses</a></li>
+  </ul>
+  <button class="nav-cta" onclick="document.getElementById('upload').scrollIntoView({behavior:'smooth'})">Upload Prescription</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-pill"><span class="dot"></span> Instant pharmacy network</div>
+  <h1>Your prescription,<br><em>delivered to every</em><br>nearby pharmacy</h1>
+  <p class="hero-sub">Upload your doctor's prescription once. We forward it to all nearby pharmacies simultaneously — they reply with availability and pricing in minutes.</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="document.getElementById('upload').scrollIntoView({behavior:'smooth'})">📄 Upload Prescription</button>
+    <button class="btn-secondary" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">See how it works</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">340+</div><div class="stat-label">Partner pharmacies</div></div>
+    <div class="stat-sep"></div>
+    <div class="stat"><div class="stat-num">&lt;8 min</div><div class="stat-label">Average reply time</div></div>
+    <div class="stat-sep"></div>
+    <div class="stat"><div class="stat-num">98%</div><div class="stat-label">Medicine found</div></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="section-inner">
+    <div class="section-tag">Process</div>
+    <div class="section-title">Three steps to get<br>your medicine</div>
+    <p class="section-sub">No more calling pharmacies one by one. MedRelay does the work for you.</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-icon">📸</div>
+        <h3>Upload Prescription</h3>
+        <p>Take a clear photo of your doctor's prescription and upload it to our secure portal along with your location details.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-icon">📡</div>
+        <h3>We Broadcast</h3>
+        <p>Your prescription is instantly forwarded to all verified pharmacies within your chosen radius — simultaneously.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-icon">💬</div>
+        <h3>Pharmacies Reply</h3>
+        <p>Each pharmacy reviews and responds with medicine availability and itemised pricing. You pick the best option.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-icon">🛵</div>
+        <h3>Order & Receive</h3>
+        <p>Choose your preferred pharmacy and arrange pickup or home delivery — all without a single phone call.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UPLOAD FORM -->
+<section class="upload-section" id="upload">
+  <div class="upload-inner">
+    <div class="section-tag">Upload</div>
+    <div class="section-title" style="color:var(--white)">Send your prescription<br>to nearby pharmacies</div>
+    <p class="section-sub">All uploads are encrypted and shared only with licensed, verified pharmacies.</p>
+
+    <div class="upload-card">
+      <!-- FORM -->
+      <div id="formPanel">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Patient Name</label>
+            <input type="text" id="patientName" placeholder="Full name on prescription">
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="phone" placeholder="+91 9XXXXXXXXX">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Your Area / Locality</label>
+            <input type="text" id="area" placeholder="e.g. Sadar, Nagpur">
+          </div>
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="city" placeholder="e.g. Nagpur">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+          <label>Additional Notes for Pharmacist (optional)</label>
+          <textarea id="notes" placeholder="e.g. Need urgent delivery, prefer branded medicines..."></textarea>
+        </div>
+
+        <!-- Radius -->
+        <div class="radius-row">
+          <label>Search Radius</label>
+          <input type="range" id="radius" min="1" max="20" value="5" oninput="updateRadius(this.value)">
+          <div class="radius-val" id="radiusVal">5 km</div>
+        </div>
+
+        <!-- Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept="image/*,.pdf" multiple onchange="handleFiles(this.files)">
+          <div class="drop-icon">🩺</div>
+          <div class="drop-title">Drop prescription photos here</div>
+          <div class="drop-sub">or <span>browse files</span> — JPG, PNG, PDF accepted</div>
+        </div>
+
+        <div class="preview-grid" id="previewGrid"></div>
+
+        <button class="submit-btn" id="submitBtn" onclick="submitPrescription()">
+          <span id="btnText">📤 Send to Nearby Pharmacies</span>
+          <div class="spinner" id="btnSpinner"></div>
+        </button>
+      </div>
+
+      <!-- SUCCESS -->
+      <div class="success-panel" id="successPanel">
+        <div class="success-icon">✅</div>
+        <h3>Prescription Sent!</h3>
+        <p>Your prescription has been forwarded to <strong style="color:var(--teal)" id="pharmacyCount">12</strong> pharmacies within <strong style="color:var(--teal)" id="sentRadius">5</strong> km.<br>You'll receive replies below as pharmacies respond.</p>
+        <div class="track-id" id="trackId">MR-20260606-4821</div>
+        <div class="progress-wrap">
+          <div class="progress-label">PHARMACY RESPONSES RECEIVED</div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+        <br>
+        <button class="btn-secondary" onclick="resetForm()" style="margin-top:8px;color:#fff;border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.07)">Upload Another</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHARMACY RESPONSES -->
+<section class="responses-section" id="responses">
+  <div class="responses-inner">
+    <div class="section-tag">Live Responses</div>
+    <div class="section-title">Pharmacy replies<br>appear here</div>
+    <p class="section-sub">Pharmacies respond in real time. Compare prices and availability, then place your order.</p>
+
+    <div class="pharmacy-cards" id="pharmacyCards">
+      <!-- Demo cards -->
+      <div class="pharm-card">
+        <div class="pharm-header">
+          <div class="pharm-avatar" style="background:#e6f7f5">🏥</div>
+          <div>
+            <div class="pharm-name">LifeCare Pharmacy</div>
+            <div class="pharm-dist">📍 1.2 km away · Civil Lines</div>
+          </div>
+          <span class="status-badge badge-avail">All Available</span>
+        </div>
+        <div class="pharm-body">
+          <ul class="med-list">
+            <li class="med-item"><span class="med-name"><span class="med-dot dot-green"></span>Metformin 500mg × 30</span><span class="med-price">₹142</span></li>
+            <li class="med-item"><span class="med-name"><span class="med-dot dot-green"></span>Atorvastatin 10mg × 30</span><span class="med-price">₹210</span></li>
+            <li class="med-item"><span class="med-name"><span class="med-dot dot-green"></span>Amlodipine 5mg × 30</span><span class="med-price">₹88</span></li>
+          </ul>
+        </div>
+        <div class="pharm-footer">
+          <div class="total-price">Total <strong>₹440</strong></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <div class="reply-time"><span class="reply-dot"></span> Replied 2 min ago</div>
+            <button class="order-btn" onclick="placeOrder('LifeCare Pharmacy','₹440')">Order Now</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pharm-card">
+        <div class="pharm-header">
+          <div class="pharm-avatar" style="background:#fef9ec">💊</div>
+          <div>
+            <div class="pharm-name">Apollo Pharmacy</div>
+            <div class="pharm-dist">📍 2.8 km away · Dharampeth</div>
+          </div>
+          <span class="status-badge badge-partial">Partial</span>
+        </div>
+        <div class="pharm-body">
+          <ul class="med-list">
+            <li class="med-item"><span class="med-name"><span class="med-dot dot-green"></span>Metformin 500mg × 30</span><span class="med-price">₹138</span></li>
+            <li class="med-item"><span class="med-name"><span class="med-dot dot-yellow"></span>Atorvastatin 10mg × 30</span><span class="med-price">₹228</span></li>
+            <li class="med-item"><span class="med-name"><span class="med-dot dot-red"></span>Amlodipine 5mg × 30</span><span class="med-price">Out of stock</span></li>
+          </ul>
+        </div>
+        <div class="pharm-footer">
+          <div class="total-price">Partial <strong>₹366</strong></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <div class="reply-time"><span class="reply-dot"></span> Replied 5 min ago</div>
+            <button class="order-btn" onclick="placeOrder('Apollo Pharmacy','₹366')">Order Partial</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pharm-card">
+        <div class="pharm-header">
+          <div class="pharm-avatar" style="background:#f0eeff">🌿</div>
+          <div>
+            <div class="pharm-name">MedPlus Stores</div>
+            <div class="pharm-dist">📍 3.5 km away · Sitabuldi</div>
+          </div>
+          <span class="status-badge badge-wait">Reviewing…</span>
+        </div>
+        <div class="pharm-body" style="display:flex;align-items:center;justify-content:center;padding:36px 24px">
+          <div style="text-align:center;color:var(--muted)">
+            <div style="font-size:28px;margin-bottom:8px">⏳</div>
+            <div style="font-size:14px">Pharmacist is reviewing<br>your prescription</div>
+          </div>
+        </div>
+        <div class="pharm-footer">
+          <div class="total-price" style="color:var(--muted);font-size:12px">Expected in ~3 min</div>
+          <button class="order-btn" disabled>Pending</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="section-inner">
+    <div class="section-tag">Why MedRelay</div>
+    <div class="section-title">Built for patients,<br>trusted by pharmacists</div>
+    <div class="features-grid">
+      <div class="feat-card"><div class="feat-icon">🔒</div><h4>Secure & Private</h4><p>All prescription images are encrypted end-to-end and auto-deleted after 48 hours.</p></div>
+      <div class="feat-card"><div class="feat-icon">⚡</div><h4>Real-time Replies</h4><p>Pharmacies receive instant alerts and typically respond within 5–10 minutes.</p></div>
+      <div class="feat-card"><div class="feat-icon">🗺️</div><h4>Location-based</h4><p>Only verified, licensed pharmacies within your chosen radius receive your request.</p></div>
+      <div class="feat-card"><div class="feat-icon">📋</div><h4>Complete History</h4><p>Track all your prescriptions and past orders from one dashboard.</p></div>
+      <div class="feat-card"><div class="feat-icon">🛵</div><h4>Delivery Options</h4><p>Many pharmacies on our network offer home delivery directly through the app.</p></div>
+      <div class="feat-card"><div class="feat-icon">✅</div><h4>Verified Partners</h4><p>Every pharmacy is licensed, GST-registered, and verified by our team.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div style="font-family:'DM Serif Display',serif;font-size:20px;color:rgba(255,255,255,.9);margin-bottom:10px">Med<span style="color:var(--teal)">Relay</span></div>
+  <p>Connecting patients to pharmacies across India.<br>
+  <strong>Emergency?</strong> Call 112 or visit your nearest hospital immediately.</p>
+  <p style="margin-top:16px;font-size:12px;opacity:.4">© 2026 MedRelay Technologies Pvt. Ltd. · For licensed pharmacies only · Prescriptions handled per Indian pharmaceutical regulations.</p>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Drag & Drop ──
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+
+  let uploadedFiles = [];
+  function handleFiles(files) {
+    [...files].forEach(file => {
+      uploadedFiles.push(file);
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = e => addPreview(e.target.result, uploadedFiles.length - 1);
+        reader.readAsDataURL(file);
+      } else {
+        addPreview(null, uploadedFiles.length - 1, file.name);
+      }
+    });
+  }
+
+  function addPreview(src, idx, name) {
+    const grid = document.getElementById('previewGrid');
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    item.id = `preview-${idx}`;
+    if (src) {
+      item.innerHTML = `<img src="${src}" alt="Prescription"><button class="remove" onclick="removePreview(${idx})">×</button>`;
+    } else {
+      item.style.cssText = 'display:flex;align-items:center;justify-content:center;flex-direction:column;background:#1a2b3c;';
+      item.innerHTML = `<div style="font-size:20px">📄</div><div style="font-size:9px;color:#aaa;padding:2px 4px;text-align:center;word-break:break-all">${name}</div><button class="remove" onclick="removePreview(${idx})">×</button>`;
+    }
+    grid.appendChild(item);
+  }
+
+  function removePreview(idx) {
+    uploadedFiles[idx] = null;
+    const el = document.getElementById(`preview-${idx}`);
+    if (el) el.remove();
+  }
+
+  function updateRadius(v) {
+    document.getElementById('radiusVal').textContent = v + ' km';
+  }
+
+  // ── Submit ──
+  function submitPrescription() {
+    const name = document.getElementById('patientName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const area = document.getElementById('area').value.trim();
+    const files = uploadedFiles.filter(Boolean);
+
+    if (!name) { showToast('⚠️ Please enter patient name'); return; }
+    if (!phone) { showToast('⚠️ Please enter mobile number'); return; }
+    if (!area) { showToast('⚠️ Please enter your area'); return; }
+    if (!files.length) { showToast('⚠️ Please upload at least one prescription image'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('btnSpinner');
+    const btnText = document.getElementById('btnText');
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent = 'Sending to pharmacies…';
+
+    setTimeout(() => {
+      const radius = document.getElementById('radius').value;
+      document.getElementById('sentRadius').textContent = radius;
+      const count = Math.floor(Math.random() * 8) + 8;
+      document.getElementById('pharmacyCount').textContent = count;
+      const trackId = 'MR-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*9000+1000);
+      document.getElementById('trackId').textContent = trackId;
+
+      document.getElementById('formPanel').style.display = 'none';
+      document.getElementById('successPanel').style.display = 'block';
+
+      // Animate progress
+      let pct = 0;
+      const fill = document.getElementById('progressFill');
+      const iv = setInterval(() => {
+        pct += Math.random() * 12;
+        if (pct > 75) { clearInterval(iv); pct = 75; }
+        fill.style.width = pct + '%';
+      }, 800);
+
+      showToast('✅ Prescription sent to ' + count + ' pharmacies!');
+      document.getElementById('responses').scrollIntoView({behavior:'smooth'});
+
+      // Simulate a new pharmacy response appearing
+      setTimeout(() => simulateNewResponse(), 4000);
+    }, 2200);
+  }
+
+  function simulateNewResponse() {
+    const card = document.createElement('div');
+    card.className = 'pharm-card';
+    card.style.opacity = '0'; card.style.transform = 'translateY(20px)'; card.style.transition = 'all .5s ease';
+    card.innerHTML = `
+      <div class="pharm-header">
+        <div class="pharm-avatar" style="background:#e8f5e9">🏪</div>
+        <div>
+          <div class="pharm-name">Wellness Pharmacy</div>
+          <div class="pharm-dist">📍 1.8 km away · Ramdaspeth</div>
+        </div>
+        <span class="status-badge badge-avail">All Available</span>
+      </div>
+      <div class="pharm-body">
+        <ul class="med-list">
+          <li class="med-item"><span class="med-name"><span class="med-dot dot-green"></span>Metformin 500mg × 30</span><span class="med-price">₹130</span></li>
+          <li class="med-item"><span class="med-name"><span class="med-dot dot-green"></span>Atorvastatin 10mg × 30</span><span class="med-price">₹198</span></li>
+          <li class="med-item"><span class="med-name"><span class="med-dot dot-green"></span>Amlodipine 5mg × 30</span><span class="med-price">₹75</span></li>
+        </ul>
+      </div>
+      <div class="pharm-footer">
+        <div class="total-price">Total <strong>₹403</strong></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="reply-time"><span class="reply-dot"></span> Just replied</div>
+          <button class="order-btn" onclick="placeOrder('Wellness Pharmacy','₹403')">Order Now</button>
+        </div>
+      </div>`;
+    document.getElementById('pharmacyCards').prepend(card);
+    requestAnimationFrame(() => { card.style.opacity='1'; card.style.transform='translateY(0)'; });
+    showToast('🔔 New reply from Wellness Pharmacy!');
+    document.getElementById('progressFill').style.width = '90%';
+  }
+
+  function resetForm() {
+    uploadedFiles = [];
+    document.getElementById('previewGrid').innerHTML = '';
+    document.getElementById('patientName').value = '';
+    document.getElementById('phone').value = '';
+    document.getElementById('area').value = '';
+    document.getElementById('city').value = '';
+    document.getElementById('notes').value = '';
+    document.getElementById('formPanel').style.display = 'block';
+    document.getElementById('successPanel').style.display = 'none';
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = false;
+    document.getElementById('btnSpinner').style.display = 'none';
+    document.getElementById('btnText').textContent = '📤 Send to Nearby Pharmacies';
+    document.getElementById('progressFill').style.width = '0';
+  }
+
+  function placeOrder(pharmacy, total) {
+    showToast(`🛒 Order placed with ${pharmacy} for ${total}`);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+</script>
+</body>
+</html>

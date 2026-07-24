@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}MedRelay{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ── NAVIGATION ── -->
+<nav class="nav" id="mainNav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text"><em>Med</em><span>Relay</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/upload">Upload Rx</a></li>
+    <li><a href="/map">Find Pharmacy</a></li>
+    <li><a href="/responses">Responses</a></li>
+  </ul>
+  <button class="nav-cta" onclick="location.href='/upload'">📄 Upload Prescription</button>
+  <button class="nav-burger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+{% block body %}{% endblock %}
+
+<div id="toast"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

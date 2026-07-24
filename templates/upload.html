@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Prescription — MedRelay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .upload-wrap   { max-width:860px; margin:0 auto; padding:56px 24px 80px; }
+    .upload-hero   { text-align:center; margin-bottom:44px; }
+    .upload-hero h1{ font-family:var(--serif); font-size:clamp(28px,4vw,46px); color:var(--navy); }
+    .upload-hero p { color:var(--muted); margin-top:12px; font-size:16px; line-height:1.65; }
+
+    .tips       { background:var(--teal-l); border:1px solid rgba(13,158,138,.2); border-radius:14px; padding:18px 22px; margin-bottom:28px; }
+    .tips h4    { font-size:13px; font-weight:700; color:var(--teal-d); margin-bottom:10px; }
+    .tips ul li { font-size:13px; color:var(--text); display:flex; align-items:flex-start; gap:8px; line-height:1.5; margin-bottom:6px; }
+
+    .upload-card  { background:var(--navy); border-radius:22px; padding:40px; }
+    @media(max-width:600px){ .upload-card{ padding:22px 16px; } }
+
+    /* Success panel */
+    .success-panel   { display:none; text-align:center; padding:28px 0; }
+    .success-icon    { width:72px; height:72px; border-radius:50%; background:rgba(34,197,94,.15); border:2px solid rgba(34,197,94,.3); display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 18px; animation:popIn .4s ease both; }
+    .success-panel h3{ color:#fff; font-family:var(--serif); font-size:26px; margin-bottom:10px; }
+    .success-panel p { color:rgba(255,255,255,.52); font-size:15px; line-height:1.65; }
+    .track-pill      { display:inline-block; margin-top:16px; background:rgba(13,158,138,.2); border:1px solid rgba(13,158,138,.4); border-radius:10px; padding:9px 20px; font-family:monospace; font-size:15px; color:var(--teal); letter-spacing:.09em; }
+    .success-btns    { display:flex; gap:12px; margin-top:26px; justify-content:center; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="{{ url_for('index') }}" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text">Med<span>Relay</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('index') }}">Home</a></li>
+    <li><a href="{{ url_for('upload_page') }}">Upload Rx</a></li>
+    <li><a href="{{ url_for('map_page') }}">Find Pharmacy</a></li>
+    <li><a href="{{ url_for('responses_page') }}">Responses</a></li>
+  </ul>
+  <a class="nav-cta" href="{{ url_for('map_page') }}">🗺️ Find Pharmacies</a>
+  <button class="nav-hamburger"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page">
+  <div class="upload-wrap">
+
+    <div class="upload-hero fade-up">
+      <div class="section-tag" style="display:flex;justify-content:center">Upload</div>
+      <h1>Send your prescription to<br>nearby pharmacies</h1>
+      <p>Fill in your details, upload the prescription photo, and we'll forward it instantly.</p>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips fade-up">
+      <h4>📷 Tips for a clear prescription photo</h4>
+      <ul>
+        <li><span>✓</span> Lay the prescription flat on a table in good light</li>
+        <li><span>✓</span> Ensure all text is readable — medicines, dosage, doctor's name</li>
+        <li><span>✓</span> Avoid shadows or camera glare over the paper</li>
+        <li><span>✓</span> Upload within 6 months of the prescription date for validity</li>
+      </ul>
+    </div>
+
+    <!-- Upload card (dark) -->
+    <div class="upload-card fade-up">
+
+      <!-- FORM PANEL -->
+      <div id="formPanel">
+        <form id="uploadForm" class="form-dark" novalidate>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Patient Name *</label>
+              <input class="form-input" type="text" id="patientName" placeholder="As on prescription" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile Number *</label>
+              <input class="form-input" type="tel" id="phone" placeholder="+91 9XXXXXXXXX" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Locality / Area *</label>
+              <input class="form-input" type="text" id="area" placeholder="e.g. Civil Lines, Nagpur" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input class="form-input" type="text" id="city" placeholder="e.g. Nagpur">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes for Pharmacist</label>
+            <textarea class="form-textarea" id="notes" placeholder="e.g. Need urgent delivery, prefer generic brands, allergic to penicillin…"></textarea>
+          </div>
+
+          <!-- Radius slider -->
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap">
+            <label class="form-label" style="color:rgba(255,255,255,.72);white-space:nowrap;margin-bottom:0">Search Radius</label>
+            <input type="range" id="radius" min="1" max="25" value="5" style="flex:1;min-width:120px;accent-color:var(--teal)">
+            <span id="radiusVal" style="font-size:14px;font-weight:800;color:var(--teal);min-width:42px">5 km</span>
+          </div>
+
+          <!-- Drop zone -->
+          <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*,.pdf" multiple>
+            <div class="drop-icon">🩺</div>
+            <div class="drop-title">Drop prescription photos here</div>
+            <div class="drop-sub">or <span>browse files</span> — JPG, PNG, PDF · Max 10 MB each</div>
+          </div>
+          <div class="preview-grid" id="previewGrid"></div>
+
+          <button type="submit" id="submitBtn" class="btn btn-primary"
+            style="width:100%;justify-content:center;padding:15px;font-size:16px;border-radius:13px;box-shadow:0 4px 20px rgba(13,158,138,.4)">
+            <span id="btnText">📤 Send to Nearby Pharmacies</span>
+            <div class="spinner" id="btnSpinner"></div>
+          </button>
+        </form>
+      </div>
+
+      <!-- SUCCESS PANEL -->
+      <div class="success-panel" id="successPanel">
+        <div class="success-icon">✅</div>
+        <h3>Prescription Sent!</h3>
+        <p>
+          Forwarded to <strong style="color:var(--teal)" id="countVal">—</strong> pharmacies
+          within <strong style="color:var(--teal)" id="radiusSent">—</strong> km.
+          <br>Replies will appear on the <a href="{{ url_for('responses_page') }}" style="color:var(--teal)">Responses page</a>.
+        </p>
+        <div class="track-pill" id="trackIdVal">MR-…</div>
+        <div class="progress-label">Pharmacy responses received</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="success-btns">
+          <a href="{{ url_for('responses_page') }}" class="btn btn-primary">View Responses →</a>
+          <button id="resetBtn" class="btn btn-outline" style="color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.18)">Upload Another</button>
+        </div>
+      </div>
+
+    </div><!-- /upload-card -->
+
+    <!-- Security note -->
+    <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--muted)">
+      🔒 Your prescription is encrypted and shared only with licensed pharmacies. Auto-deleted in 48 hours.
+    </p>
+  </div><!-- /upload-wrap -->
+
+  <footer class="footer" style="padding:28px 48px 22px">
+    <div class="footer-bottom" style="border-top:none;padding-top:0;text-align:left;color:rgba(255,255,255,.3);font-size:12px">
+      © 2026 MedRelay Technologies Pvt. Ltd. &nbsp;·&nbsp; All uploads comply with Indian pharmaceutical regulations.
+    </div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+</body>
+</html>
