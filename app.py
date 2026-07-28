@@ -1,8 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════
 #  MedRelay — Flask Backend   app.py
-#
-#  pip install flask flask-cors pillow werkzeug requests mysql-connector-python bcrypt
-#  python app.py  →  http://localhost:5000
 # ═══════════════════════════════════════════════════════════════════════════
 
 import os, uuid, math, json, time, hashlib
@@ -25,14 +22,14 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'medrelay-dev-secret-change-in-prod')
 CORS(app, supports_credentials=True)
 
-# ── Upload ────────────────────────────────────────────────────────────────
+# ── Upload ──
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXT   = {'jpg','jpeg','png','pdf','webp'}
 app.config['UPLOAD_FOLDER']      = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ── MySQL ─────────────────────────────────────────────────────────────────
+# ── MySQL ──
 import mysql.connector
 from mysql.connector import pooling
 
@@ -65,7 +62,7 @@ def qry(sql, params=None, fetch='all'):
     finally:
         conn.close()
 
-# ── Passwords ─────────────────────────────────────────────────────────────
+# ── Passwords ──
 def hash_pw(plain):
     if USE_BCRYPT:
         return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
@@ -77,7 +74,7 @@ def check_pw(plain, hashed):
         except: pass
     return hashlib.sha256(plain.encode()).hexdigest() == hashed
 
-# ── Auth decorator ────────────────────────────────────────────────────────
+# ── Auth decorator ──
 def pharmacy_required(f):
     @wraps(f)
     def wrap(*a, **kw):
@@ -86,12 +83,12 @@ def pharmacy_required(f):
         return f(*a, **kw)
     return wrap
 
-# ── Overpass ──────────────────────────────────────────────────────────────
+# ── Overpass ──
 OVERPASS = ['https://overpass-api.de/api/interpreter',
             'https://overpass.kumi.systems/api/interpreter']
 _ov_cache = {}; CACHE_TTL = 300
 
-# ── Utils ─────────────────────────────────────────────────────────────────
+# ── Utils ──
 def new_uuid(): return str(uuid.uuid4())
 
 def track_id():
@@ -652,278 +649,4 @@ def api_get_responses(pid):
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
     
-    
-    
-
-    
-# import os, uuid, json
-# from datetime import datetime
-# from flask import Flask, request, jsonify, send_from_directory, render_template
-# from flask_cors import CORS
-# from werkzeug.utils import secure_filename
-
-# app = Flask(__name__, static_folder="static", template_folder="templates")
-# CORS(app)
-
-# # ── Config ──────────────────────────────────────────
-# UPLOAD_FOLDER   = os.path.join(os.path.dirname(__file__), "uploads")
-# ALLOWED_EXT     = {"png", "jpg", "jpeg", "webp", "pdf"}
-# MAX_CONTENT_LEN = 10 * 1024 * 1024   # 10 MB
-
-# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-# app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LEN
-
-# # ── In-memory "database" (swap for SQLite/Postgres) ─
-# prescriptions: dict = {}   # id → prescription dict
-# responses:     dict = {}   # prescription_id → [response, ...]
-
-# # ── Static pharmacy data (Nagpur) ───────────────────
-# PHARMACIES = [
-#     {"id":"ph1","name":"LifeCare Pharmacy",    "address":"17 Civil Lines, Nagpur",     "phone":"0712-244-5678","lat":21.1458,"lng":79.0882,"open":True, "rating":4.8,"dist_km":1.2},
-#     {"id":"ph2","name":"Apollo Pharmacy",      "address":"Dharampeth, Nagpur",          "phone":"0712-255-9900","lat":21.1536,"lng":79.0775,"open":True, "rating":4.6,"dist_km":2.8},
-#     {"id":"ph3","name":"MedPlus Stores",       "address":"Sitabuldi, Nagpur",           "phone":"0712-266-1122","lat":21.1418,"lng":79.0760,"open":False,"rating":4.3,"dist_km":3.5},
-#     {"id":"ph4","name":"Wellness Pharmacy",    "address":"Ramdaspeth, Nagpur",          "phone":"0712-277-3344","lat":21.1490,"lng":79.0840,"open":True, "rating":4.7,"dist_km":1.8},
-#     {"id":"ph5","name":"Jan Aushadhi Kendra",  "address":"Itwari, Nagpur",              "phone":"0712-288-5566","lat":21.1582,"lng":79.0912,"open":True, "rating":4.1,"dist_km":4.2},
-#     {"id":"ph6","name":"Sahyadri Pharma",      "address":"Sadar, Nagpur",               "phone":"0712-299-7788","lat":21.1430,"lng":79.0980,"open":False,"rating":4.5,"dist_km":3.0},
-#     {"id":"ph7","name":"NetMeds Store",        "address":"Mahal, Nagpur",               "phone":"0712-300-9900","lat":21.1500,"lng":79.0700,"open":True, "rating":4.2,"dist_km":5.1},
-#     {"id":"ph8","name":"Dr. Reddy's Pharma",   "address":"Wardhaman Nagar, Nagpur",     "phone":"0712-311-2233","lat":21.1610,"lng":79.0850,"open":True, "rating":4.4,"dist_km":4.8},
-# ]
-
-# # ── Helpers ─────────────────────────────────────────
-# def allowed_file(filename: str) -> bool:
-#     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
-
-# def make_track_id() -> str:
-#     date_str = datetime.now().strftime("%Y%m%d")
-#     short    = str(uuid.uuid4())[:4].upper()
-#     return f"MR-{date_str}-{short}"
-
-# def haversine(lat1, lng1, lat2, lng2) -> float:
-#     """Return distance in km between two lat/lng points."""
-#     from math import radians, sin, cos, sqrt, atan2
-#     R = 6371
-#     dlat = radians(lat2 - lat1)
-#     dlng = radians(lng2 - lng1)
-#     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng/2)**2
-#     return R * 2 * atan2(sqrt(a), sqrt(1 - a))
-
-# # ════════════════════════════════════════════════════
-# #  PAGE ROUTES  (serve HTML templates)
-# # ════════════════════════════════════════════════════
-# @app.route("/")
-# def index():
-#     return render_template("index.html")
-
-# @app.route("/upload")
-# def upload_page():
-#     return render_template("upload.html")
-
-# @app.route("/map")
-# def map_page():
-#     return render_template("map.html")
-
-# @app.route("/responses")
-# def responses_page():
-#     return render_template("responses.html")
-
-# # ── Serve uploaded prescription images ──────────────
-# @app.route("/uploads/<filename>")
-# def uploaded_file(filename):
-#     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
-# # ════════════════════════════════════════════════════
-# #  API — PHARMACIES
-# # ════════════════════════════════════════════════════
-# @app.route("/api/pharmacies", methods=["GET"])
-# def get_pharmacies():
-#     """
-#     GET /api/pharmacies
-#     Optional query params: lat, lng, radius (km, default 10)
-#     Returns list of pharmacies sorted by distance.
-#     """
-#     lat    = request.args.get("lat",    type=float)
-#     lng    = request.args.get("lng",    type=float)
-#     radius = request.args.get("radius", type=float, default=10.0)
-
-#     result = []
-#     for p in PHARMACIES:
-#         entry = dict(p)
-#         if lat is not None and lng is not None:
-#             entry["dist_km"] = round(haversine(lat, lng, p["lat"], p["lng"]), 2)
-#         if entry["dist_km"] <= radius:
-#             result.append(entry)
-
-#     result.sort(key=lambda x: x["dist_km"])
-#     return jsonify({"success": True, "count": len(result), "pharmacies": result})
-
-# # ════════════════════════════════════════════════════
-# #  API — PRESCRIPTIONS
-# # ════════════════════════════════════════════════════
-# @app.route("/api/prescriptions", methods=["POST"])
-# def upload_prescription():
-#     """
-#     POST /api/prescriptions
-#     Form fields: patient_name, phone, area, city, notes, radius
-#     Files:       images[]
-#     Returns:     { success, prescription_id, notified_count, prescription }
-#     """
-#     patient_name = request.form.get("patient_name", "").strip()
-#     phone        = request.form.get("phone",        "").strip()
-#     area         = request.form.get("area",         "").strip()
-#     city         = request.form.get("city",         "").strip()
-#     notes        = request.form.get("notes",        "").strip()
-#     radius       = float(request.form.get("radius", 5))
-#     lat          = request.form.get("lat",   type=float)
-#     lng          = request.form.get("lng",   type=float)
-
-#     # Validate
-#     errors = []
-#     if not patient_name: errors.append("patient_name is required")
-#     if not phone:        errors.append("phone is required")
-#     if not area:         errors.append("area is required")
-#     if errors:
-#         return jsonify({"success": False, "errors": errors}), 400
-
-#     # Save uploaded files
-#     files = request.files.getlist("images")
-#     saved_paths = []
-#     for f in files:
-#         if f and f.filename and allowed_file(f.filename):
-#             filename = f"{uuid.uuid4().hex}_{secure_filename(f.filename)}"
-#             f.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-#             saved_paths.append(f"/uploads/{filename}")
-
-#     if not saved_paths:
-#         return jsonify({"success": False, "errors": ["At least one prescription image is required"]}), 400
-
-#     # Build record
-#     presc_id = make_track_id()
-#     nearby   = [p for p in PHARMACIES if p["dist_km"] <= radius]
-
-#     prescription = {
-#         "id":           presc_id,
-#         "patient_name": patient_name,
-#         "phone":        phone,
-#         "area":         area,
-#         "city":         city,
-#         "notes":        notes,
-#         "images":       saved_paths,
-#         "radius_km":    radius,
-#         "lat":          lat,
-#         "lng":          lng,
-#         "status":       "pending",
-#         "created_at":   datetime.now().isoformat(),
-#         "notified_pharmacies": [p["id"] for p in nearby],
-#     }
-
-#     prescriptions[presc_id] = prescription
-#     responses[presc_id]     = []
-
-#     # In production: send WhatsApp / SMS / email to each pharmacy here
-#     # notify_pharmacies(nearby, prescription)
-
-#     return jsonify({
-#         "success":         True,
-#         "prescription_id": presc_id,
-#         "notified_count":  len(nearby),
-#         "prescription":    prescription,
-#     }), 201
-
-
-# @app.route("/api/prescriptions/<presc_id>", methods=["GET"])
-# def get_prescription(presc_id):
-#     """GET /api/prescriptions/<id>  — fetch prescription + its responses."""
-#     p = prescriptions.get(presc_id)
-#     if not p:
-#         return jsonify({"success": False, "error": "Prescription not found"}), 404
-#     return jsonify({
-#         "success":      True,
-#         "prescription": p,
-#         "responses":    responses.get(presc_id, []),
-#     })
-
-# # ════════════════════════════════════════════════════
-# #  API — PHARMACY RESPONSES  (pharmacist-side)
-# # ════════════════════════════════════════════════════
-# @app.route("/api/responses", methods=["POST"])
-# def submit_response():
-#     """
-#     POST /api/responses
-#     JSON body:
-#     {
-#       "prescription_id": "MR-...",
-#       "pharmacy_id":     "ph1",
-#       "medicines": [
-#         { "name": "Metformin 500mg x30", "available": true,  "price": 142 },
-#         { "name": "Atorvastatin 10mg x30","available": false, "price": 0  }
-#       ],
-#       "total_price": 142,
-#       "notes": "Delivery available",
-#       "delivery_available": true
-#     }
-#     """
-#     data = request.get_json(silent=True) or {}
-
-#     presc_id    = data.get("prescription_id")
-#     pharmacy_id = data.get("pharmacy_id")
-#     medicines   = data.get("medicines", [])
-
-#     if not presc_id or not pharmacy_id or not medicines:
-#         return jsonify({"success": False, "error": "Missing required fields"}), 400
-
-#     if presc_id not in prescriptions:
-#         return jsonify({"success": False, "error": "Prescription not found"}), 404
-
-#     pharmacy = next((p for p in PHARMACIES if p["id"] == pharmacy_id), None)
-#     if not pharmacy:
-#         return jsonify({"success": False, "error": "Pharmacy not found"}), 404
-
-#     all_avail  = all(m.get("available") for m in medicines)
-#     any_avail  = any(m.get("available") for m in medicines)
-#     avail_str  = "all" if all_avail else ("partial" if any_avail else "none")
-
-#     response_obj = {
-#         "id":                str(uuid.uuid4()),
-#         "prescription_id":   presc_id,
-#         "pharmacy_id":       pharmacy_id,
-#         "pharmacy_name":     pharmacy["name"],
-#         "pharmacy_phone":    pharmacy["phone"],
-#         "pharmacy_dist":     pharmacy["dist_km"],
-#         "medicines":         medicines,
-#         "total_price":       data.get("total_price", 0),
-#         "notes":             data.get("notes", ""),
-#         "delivery_available":data.get("delivery_available", False),
-#         "availability":      avail_str,
-#         "created_at":        datetime.now().isoformat(),
-#     }
-
-#     responses[presc_id].append(response_obj)
-#     return jsonify({"success": True, "response": response_obj}), 201
-
-
-# @app.route("/api/responses/<presc_id>", methods=["GET"])
-# def get_responses(presc_id):
-#     """GET /api/responses/<prescription_id>  — all pharmacy replies."""
-#     if presc_id not in prescriptions:
-#         return jsonify({"success": False, "error": "Prescription not found"}), 404
-#     return jsonify({
-#         "success":   True,
-#         "count":     len(responses.get(presc_id, [])),
-#         "responses": responses.get(presc_id, []),
-#     })
-
-# # ════════════════════════════════════════════════════
-# #  HEALTH CHECK
-# # ════════════════════════════════════════════════════
-# @app.route("/api/health")
-# def health():
-#     return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
-
-# # ════════════════════════════════════════════════════
-# if __name__ == "__main__":
-#     print("\n  ╔═══════════════════════════════╗")
-#     print("  ║  MedRelay Flask Server         ║")
-#     print("  ║  http://localhost:5000          ║")
-#     print("  ╚═══════════════════════════════╝\n")
-#     app.run(debug=True, port=5000)
+  
