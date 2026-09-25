@@ -1,7 +1,3 @@
-/* ═══════════════════════════════════════════════
-   MedRelay  —  static/js/responses.js
-   ═══════════════════════════════════════════════ */
-
 document.addEventListener('DOMContentLoaded', () => {
 
   const order = Store.get('lastOrder');

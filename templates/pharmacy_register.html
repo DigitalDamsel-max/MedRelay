@@ -101,9 +101,9 @@
     <li><a href="/">Home</a></li>
     <li><a href="/upload">Upload Rx</a></li>
     <li><a href="/map">Find Pharmacy</a></li>
-    <li><a href="/pharmacy/login">Pharmacist Login</a></li>
+    <li><a href="/pharmacy/login"> Login </a></li>
   </ul>
-  <button class="nav-cta" onclick="location.href='/pharmacy/login'">Pharmacist Login</button>
+  <button class="nav-cta" onclick="location.href='/pharmacy/login'"> Login </button>
   <button class="nav-burger"><span></span><span></span><span></span></button>
 </nav>
 
@@ -113,227 +113,228 @@
   <div class="reg-hero fade-up">
     <div class="section-tag" style="justify-content:center;display:flex">For Pharmacies</div>
     <h1>Register your pharmacy<br>on MedRelay</h1>
-    <p>Join 340+ partner pharmacies. Receive prescription requests directly from patients near you.</p>
+    <p>Receive prescription requests directly from patients near you.</p>
   </div>
 
   <!-- Registration Card -->
   <div class="reg-card fade-up" id="regCard">
+    <form id="pharmacyForm" method="POST" enctype="multipart/form-data">
+    
+      <!-- Step tabs -->
+      <div class="steps-bar">
+        <div class="step-tab active" data-step="1">① Basic Info</div>
+        <div class="step-tab" data-step="2">② Location</div>
+        <div class="step-tab" data-step="3">③ Operations</div>
+        <div class="step-tab" data-step="4">④ Account</div>
+      </div>
 
-    <!-- Step tabs -->
-    <div class="steps-bar">
-      <div class="step-tab active" data-step="1">① Basic Info</div>
-      <div class="step-tab" data-step="2">② Location</div>
-      <div class="step-tab" data-step="3">③ Operations</div>
-      <div class="step-tab" data-step="4">④ Account</div>
-    </div>
+      <!-- ── STEP 1: Basic Info ── -->
+      <div class="step-panel active" id="step1">
+        <div class="section-label">Pharmacy Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pharmacy Name *</label>
+            <input class="form-input" name="name" id="name" type="text" placeholder="e.g. LifeCare Pharmacy">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Proprietor / Owner Name</label>
+            <input class="form-input" name="proprietor" id="proprietor" type="text" placeholder="Full Name">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone Number *</label>
+            <input class="form-input" name="phone" id="phone" type="tel" placeholder="0712-244-5678">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alternate Phone</label>
+            <input class="form-input" name="alt_phone" id="alt_phone" type="tel" placeholder="Optional">
+          </div>
+        </div>
+        <div class="section-label">Legal Documents</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Drug License Number *</label>
+            <input class="form-input" name="drug_license" id="drug_license" type="text" placeholder="MH-DL-2024-XXXXX">
+          </div>
+          <div class="form-group">
+            <label class="form-label">GST Number</label>
+            <input class="form-input" name="gst" id="gst" type="text" placeholder="27XXXXX">
+          </div>
+        </div>
+        <div class="section-label">Logo (Optional)</div>
+        <div class="logo-drop" id="logoDrop">
+          <input type="file" name="logo" id="logo" accept="image/*" onchange="previewLogo(this)">
+          <img id="logoPreview" class="logo-preview" alt="Logo preview">
+          <div id="logoPlaceholder">
+            <div style="font-size:32px;margin-bottom:8px">🏥</div>
+            <div style="font-size:14px;font-weight:600;color:var(--navy)">Upload pharmacy logo</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">PNG or JPG, max 2MB</div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <span></span>
+          <button type="button" class="btn btn-primary" onclick="goStep(2)">Next: Location →</button>
+        </div>
+      </div>
 
-    <!-- ── STEP 1: Basic Info ── -->
-    <div class="step-panel active" id="step1">
-      <div class="section-label">Pharmacy Details</div>
-      <div class="form-row">
+      <!-- ── STEP 2: Location ── -->
+      <div class="step-panel" id="step2">
+        <div class="section-label">Pick Your Pharmacy Location on the Map</div>
+        <div class="map-picker-wrap">
+          <div id="locationPickerMap"></div>
+          <div class="map-picker-hint" id="mapHint">📍 Click on the map or drag the pin to your pharmacy</div>
+          <div class="map-picker-actions">
+            <button class="map-loc-btn btn-gps" onclick="useGPS()">📍 Use My Current Location</button>
+            <button class="map-loc-btn btn-reset" onclick="resetPin()">↩ Reset</button>
+            <span id="coordsDisplay" class="coords-display" style="flex:1;text-align:center">No location selected</span>
+          </div>
+        </div>
+
+        <div class="section-label">Address Details</div>
         <div class="form-group">
-          <label class="form-label">Pharmacy Name *</label>
-          <input class="form-input" id="r_name" type="text" placeholder="e.g. LifeCare Pharmacy">
+          <label class="form-label">Street Address *</label>
+          <input class="form-input" name="address" id="address" type="text" placeholder="Shop No., Street, Landmark">
         </div>
-        <div class="form-group">
-          <label class="form-label">Proprietor / Owner Name</label>
-          <input class="form-input" id="r_proprietor" type="text" placeholder="Dr. Full Name">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Area / Locality *</label>
+            <input class="form-input" name="area" id="area" type="text" placeholder="e.g. Civil Lines">
+          </div>
+          <div class="form-group">
+            <label class="form-label">City *</label>
+            <input class="form-input" name="city" id="city" type="text" placeholder="e.g. Nagpur">
+          </div>
         </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Phone Number *</label>
-          <input class="form-input" id="r_phone" type="tel" placeholder="0712-244-5678">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">PIN Code *</label>
+            <input class="form-input" name="pincode" id="pincode" type="text" maxlength="6" placeholder="440001">
+          </div>
+          <!-- <div class="form-group">
+            <label class="form-label">State</label>
+            <input class="form-input" name="state" id="state" type="text" value="Maharashtra">
+          </div> -->
         </div>
-        <div class="form-group">
-          <label class="form-label">Alternate Phone</label>
-          <input class="form-input" id="r_alt_phone" type="tel" placeholder="Optional">
-        </div>
-      </div>
-      <div class="section-label">Legal Documents</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Drug License Number *</label>
-          <input class="form-input" id="r_drug_license" type="text" placeholder="MH-DL-2024-XXXXX">
-        </div>
-        <div class="form-group">
-          <label class="form-label">GST Number</label>
-          <input class="form-input" id="r_gst" type="text" placeholder="27XXXXX">
-        </div>
-      </div>
-      <div class="section-label">Logo (Optional)</div>
-      <div class="logo-drop" id="logoDrop">
-        <input type="file" id="r_logo" accept="image/*" onchange="previewLogo(this)">
-        <img id="logoPreview" class="logo-preview" alt="Logo preview">
-        <div id="logoPlaceholder">
-          <div style="font-size:32px;margin-bottom:8px">🏥</div>
-          <div style="font-size:14px;font-weight:600;color:var(--navy)">Upload pharmacy logo</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px">PNG or JPG, max 2MB</div>
-        </div>
-      </div>
-      <div class="step-nav">
-        <span></span>
-        <button class="btn btn-primary" onclick="goStep(2)">Next: Location →</button>
-      </div>
-    </div>
+        
+        <!-- Hidden lat/lng -->
+        <input type="hidden" name="lat" id="lat">
+        <input type="hidden" name="lng" id="lng">
 
-    <!-- ── STEP 2: Location ── -->
-    <div class="step-panel" id="step2">
-      <div class="section-label">Pick Your Pharmacy Location on the Map</div>
-      <div class="map-picker-wrap">
-        <div id="locationPickerMap"></div>
-        <div class="map-picker-hint" id="mapHint">📍 Click on the map or drag the pin to your pharmacy</div>
-        <div class="map-picker-actions">
-          <button class="map-loc-btn btn-gps" onclick="useGPS()">📍 Use My Current Location</button>
-          <button class="map-loc-btn btn-reset" onclick="resetPin()">↩ Reset</button>
-          <span id="coordsDisplay" class="coords-display" style="flex:1;text-align:center">No location selected</span>
+        <div class="step-nav">
+          <button type="button" class="btn btn-outline" onclick="goStep(1)">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="goStep(3)">Next: Operations →</button>
         </div>
       </div>
 
-      <div class="section-label">Address Details</div>
-      <div class="form-group">
-        <label class="form-label">Street Address *</label>
-        <input class="form-input" id="r_address" type="text" placeholder="Shop No., Street, Landmark">
+      <!-- ── STEP 3: Operations ── -->
+      <div class="step-panel" id="step3">
+        <div class="section-label">Opening Hours</div>
+        <div class="hours-row">
+          <div class="form-group">
+            <label class="form-label">Opening Time *</label>
+            <input class="form-input" name="open_time" id="open_time" type="time" value="09:00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Closing Time *</label>
+            <input class="form-input" name="close_time" id="close_time" type="time" value="21:00">
+          </div>
+        </div>
+
+        <div class="section-label">Services</div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Home Delivery</div>
+            <div class="toggle-sub">Offer delivery to patients in your area</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" name="delivery" id="delivery" onchange="toggleDelivery(this)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div id="deliveryRadiusWrap" style="display:none;padding:14px 0">
+          <label class="form-label">Delivery Radius</label>
+          <div style="display:flex;align-items:center;gap:16px;margin-top:8px">
+            <input type="range" name="del_radius" id="del_radius" min="1" max="20" value="5"
+              oninput="document.getElementById('delRadiusVal').textContent=this.value+' km'"
+              style="flex:1;accent-color:var(--teal)">
+            <span id="delRadiusVal" style="font-size:14px;font-weight:800;color:var(--teal);min-width:44px">5 km</span>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">24-Hour Service</div>
+            <div class="toggle-sub">Pharmacy operates round the clock</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" name="24h" id="24h" onchange="toggle24h(this)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="btn btn-outline" onclick="goStep(2)">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="goStep(4)">Next: Create Account →</button>
+        </div>
       </div>
-      <div class="form-row">
+
+      <!-- ── STEP 4: Account ── -->
+      <div class="step-panel" id="step4">
+        <div class="section-label">Login Credentials</div>
         <div class="form-group">
-          <label class="form-label">Area / Locality *</label>
-          <input class="form-input" id="r_area" type="text" placeholder="e.g. Civil Lines">
+          <label class="form-label">Email Address *</label>
+          <input class="form-input" id="email" type="email" name="email" oninput="buildSummary()" placeholder="pharmacy@yourdomain.com">
         </div>
-        <div class="form-group">
-          <label class="form-label">City *</label>
-          <input class="form-input" id="r_city" type="text" placeholder="e.g. Nagpur">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Password *</label>
+            <input class="form-input" id="password" type="password" name="password" placeholder="Min. 8 characters">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password *</label>
+            <input class="form-input" id="confirm_password" type="password" name="confirm_password" placeholder="Repeat password">
+          </div>
         </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">PIN Code *</label>
-          <input class="form-input" id="r_pincode" type="text" maxlength="6" placeholder="440001">
+
+        <!-- Summary -->
+        <div style="background:var(--teal-ll);border:1px solid rgba(13,158,138,.2);border-radius:12px;padding:18px 20px;margin-top:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--teal-d);margin-bottom:10px">📋 Registration Summary</div>
+          <div id="summaryBlock" style="font-size:13px;color:var(--text);line-height:1.8"></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">State</label>
-          <input class="form-input" id="r_state" type="text" value="Maharashtra">
-        </div>
-      </div>
-      <!-- Hidden lat/lng -->
-      <input type="hidden" id="r_lat">
-      <input type="hidden" id="r_lng">
 
-      <div class="step-nav">
-        <button class="btn btn-outline" onclick="goStep(1)">← Back</button>
-        <button class="btn btn-primary" onclick="goStep(3)">Next: Operations →</button>
-      </div>
-    </div>
-
-    <!-- ── STEP 3: Operations ── -->
-    <div class="step-panel" id="step3">
-      <div class="section-label">Opening Hours</div>
-      <div class="hours-row">
-        <div class="form-group">
-          <label class="form-label">Opening Time *</label>
-          <input class="form-input" id="r_open_time" type="time" value="09:00">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Closing Time *</label>
-          <input class="form-input" id="r_close_time" type="time" value="21:00">
-        </div>
-      </div>
-
-      <div class="section-label">Services</div>
-      <div class="toggle-row">
-        <div>
-          <div class="toggle-label">Home Delivery</div>
-          <div class="toggle-sub">Offer delivery to patients in your area</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="r_delivery" onchange="toggleDelivery(this)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div id="deliveryRadiusWrap" style="display:none;padding:14px 0">
-        <label class="form-label">Delivery Radius</label>
-        <div style="display:flex;align-items:center;gap:16px;margin-top:8px">
-          <input type="range" id="r_del_radius" min="1" max="20" value="5"
-            oninput="document.getElementById('delRadiusVal').textContent=this.value+' km'"
-            style="flex:1;accent-color:var(--teal)">
-          <span id="delRadiusVal" style="font-size:14px;font-weight:800;color:var(--teal);min-width:44px">5 km</span>
-        </div>
-      </div>
-
-      <div class="toggle-row">
-        <div>
-          <div class="toggle-label">24-Hour Service</div>
-          <div class="toggle-sub">Pharmacy operates round the clock</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="r_24h" onchange="toggle24h(this)">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="step-nav">
-        <button class="btn btn-outline" onclick="goStep(2)">← Back</button>
-        <button class="btn btn-primary" onclick="goStep(4)">Next: Create Account →</button>
-      </div>
-    </div>
-
-    <!-- ── STEP 4: Account ── -->
-    <div class="step-panel" id="step4">
-      <div class="section-label">Login Credentials</div>
-      <div class="form-group">
-        <label class="form-label">Email Address *</label>
-        <input class="form-input" id="r_email" type="email" placeholder="pharmacy@yourdomain.com">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Password *</label>
-          <input class="form-input" id="r_password" type="password" placeholder="Min. 8 characters">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Confirm Password *</label>
-          <input class="form-input" id="r_confirm_pw" type="password" placeholder="Repeat password">
-        </div>
-      </div>
-
-      <!-- Summary -->
-      <div style="background:var(--teal-ll);border:1px solid rgba(13,158,138,.2);border-radius:12px;padding:18px 20px;margin-top:16px">
-        <div style="font-size:13px;font-weight:700;color:var(--teal-d);margin-bottom:10px">📋 Registration Summary</div>
-        <div id="summaryBlock" style="font-size:13px;color:var(--text);line-height:1.8"></div>
-      </div>
-
-      <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6">
-        By registering you agree to our <a href="#" style="color:var(--teal)">Terms of Service</a> and
-        <a href="#" style="color:var(--teal)">Pharmacy Partner Agreement</a>.
-        Your registration will be reviewed by our team within 24 hours.
-      </p>
-
-      <div class="step-nav">
-        <button class="btn btn-outline" onclick="goStep(3)">← Back</button>
-        <button class="btn btn-primary" id="submitRegBtn" onclick="submitRegistration()">
-          <span id="submitRegText">✅ Submit Registration</span>
-          <div class="spinner" id="submitRegSpinner"></div>
-        </button>
-      </div>
-    </div>
-
-    <!-- ── SUCCESS ── -->
-    <div class="step-panel" id="stepSuccess">
-      <div class="success-wrap">
-        <div class="big-icon">🎉</div>
-        <h2>Registration Submitted!</h2>
-        <p>
-          Your pharmacy has been registered on MedRelay.<br>
-          Our team will <strong>verify your drug license within 24 hours</strong>.<br>
-          You'll receive a confirmation email once approved.
+        <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6">
+          By registering you agree to our <a href="#" style="color:var(--teal)">Terms of Service</a> and
+          <a href="#" style="color:var(--teal)">Pharmacy Partner Agreement</a>.
+          Your registration will be reviewed by our team within 24 hours.
         </p>
-        <div style="display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap">
-          <a href="/pharmacy/login" class="btn btn-primary">🔑 Go to Login</a>
-          <a href="/" class="btn btn-outline">🏠 Back to Home</a>
+
+        <div class="step-nav">
+          <button type="button" class="btn btn-outline" onclick="goStep(3)"> ← Back </button>
+          <button type="submit" class="btn btn-primary" id="submitRegBtn">
+          <span id="submitRegText">✅ Submit Registration</span>
+          <div class="spinner" id="submitRegSpinner"></div></button>
         </div>
       </div>
-    </div>
 
+      <!-- ── SUCCESS ── -->
+      <div class="step-panel" id="stepSuccess">
+        <div class="success-wrap">
+          <div class="big-icon">🎉</div>
+          <h2>Registration Submitted!</h2>
+          <p>
+            Your pharmacy has been registered on MedRelay.<br>
+            Our team will <strong>verify your drug license within 24 hours</strong>.<br>
+            You'll receive a confirmation email once approved.
+          </p>
+          <div style="display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap">
+            <a href="/pharmacy/login" class="btn btn-primary">🔑 Go to Login</a>
+            <a href="/" class="btn btn-outline">🏠 Back to Home</a>
+          </div>
+        </div>
+      </div>
+    </form>
   </div><!-- /reg-card -->
 </div><!-- /reg-page -->
 </div><!-- /page -->
@@ -357,39 +358,86 @@ function goStep(n) {
     t.classList.toggle('done', i < n-1);
   });
   if (n === 2) initMap();
-  if (n === 4) buildSummary();
+  if (n === 4) { buildSummary(); }
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function validateStep(n) {
-  const required = {
-    1: [['r_name','Pharmacy name'],['r_phone','Phone number'],['r_drug_license','Drug license number']],
-    2: [['r_address','Street address'],['r_area','Area'],['r_city','City'],['r_pincode','PIN code']],
-    3: [],
-    4: [['r_email','Email'],['r_password','Password'],['r_confirm_pw','Confirm password']],
-  };
-  for (const [id, label] of (required[n] || [])) {
-    if (!document.getElementById(id)?.value.trim()) {
-      showToast(`⚠️ ${label} is required`, 'error');
-      document.getElementById(id)?.focus();
-      return false;
-    }
-  }
-  if (n === 2 && !document.getElementById('r_lat').value) {
-    showToast('⚠️ Please select your pharmacy location on the map', 'error');
-    return false;
-  }
-  if (n === 4) {
-    if (document.getElementById('r_password').value.length < 8) {
-      showToast('⚠️ Password must be at least 8 characters', 'error');
-      return false;
-    }
-    if (document.getElementById('r_password').value !== document.getElementById('r_confirm_pw').value) {
-      showToast('⚠️ Passwords do not match', 'error');
-      return false;
-    }
-  }
-  return true;
+if (n === 1) {
+if (!document.getElementById('name').value.trim()) {
+showToast('⚠️ Pharmacy name is required','error');
+return false;
+}
+if (!document.getElementById('phone').value.trim()) {
+showToast('⚠️ Phone number is required','error');
+return false;
+}
+if (!document.getElementById('drug_license').value.trim()) {
+showToast('⚠️ Drug license number is required','error');
+return false;
+}
+}
+
+if (n === 2) {
+const address = document.getElementById('address').value.trim();
+const area = document.getElementById('area').value.trim();
+const city = document.getElementById('city').value.trim();
+const pincode = document.getElementById('pincode').value.trim();
+
+console.log('VALIDATION:', {address,area,city,pincode});
+
+if (!address) {
+showToast('⚠️ Street address is required','error');
+return false;
+}
+
+if (!area) {
+showToast('⚠️ Area is required','error');
+return false;
+}
+
+if (!city) {
+showToast('⚠️ City is required','error');
+return false;
+}
+
+if (!pincode) {
+showToast('⚠️ PIN code is required','error');
+return false;
+}
+
+if (!document.getElementById('lat').value) {
+showToast('⚠️ Please select your pharmacy location on the map','error');
+return false;
+}
+}
+
+if (n === 4) {
+const email = document.getElementById('email').value.trim();
+const password = document.getElementById('password').value;
+const confirm = document.getElementById('confirm_password').value;
+
+if (!email) {
+showToast('⚠️ Email is required','error');
+return false;
+}
+
+if (!password) {
+showToast('⚠️ Password is required','error');
+return false;
+}
+
+if (password.length < 8) {
+showToast('⚠️ Password must be at least 8 characters','error');
+return false;
+}
+
+if (password !== confirm) {
+showToast('⚠️ Passwords do not match','error');
+return false;
+}
+}
+return true;
 }
 
 /* ── Map picker ── */
@@ -422,25 +470,25 @@ function placePin(lat, lng) {
 }
 
 function setCoords(lat, lng) {
-  document.getElementById('r_lat').value = lat;
-  document.getElementById('r_lng').value = lng;
+  document.getElementById('lat').value = lat;
+  document.getElementById('lng').value = lng;
   document.getElementById('coordsDisplay').textContent =
     `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 }
 
-async function reverseGeocode(lat, lng) {
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      {headers:{'User-Agent':'MedRelay/1.0'}});
-    const d = await r.json();
-    const a = d.address || {};
-    if (a['road'] || a['street'])
-      document.getElementById('r_address').value = [a.road||a.street, a.house_number].filter(Boolean).join(' ');
-    document.getElementById('r_area').value    = a.suburb || a.neighbourhood || a.quarter || '';
-    document.getElementById('r_city').value    = a.city || a.town || a.village || '';
-    document.getElementById('r_state').value   = a.state || '';
-    document.getElementById('r_pincode').value = a.postcode || '';
-  } catch(e) {}
+async function reverseGeocode(lat,lng) {
+try {
+const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+{headers:{'User-Agent':'MedRelay/1.0'}});
+const d = await r.json();
+const a = d.address || {};
+
+if (a.road || a.street)
+document.getElementById('address').value = [a.road||a.street,a.house_number].filter(Boolean).join(' ');
+document.getElementById('area').value = a.suburb||a.neighbourhood||a.quarter||'';
+document.getElementById('city').value = a.city||a.town||a.village||'';
+document.getElementById('pincode').value = a.postcode||'';
+} catch(e) {}
 }
 
 function useGPS() {
@@ -455,8 +503,8 @@ function useGPS() {
 
 function resetPin() {
   if (pickerMarker) { pickerMap.removeLayer(pickerMarker); pickerMarker=null; }
-  document.getElementById('r_lat').value = '';
-  document.getElementById('r_lng').value = '';
+  document.getElementById('lat').value = '';
+  document.getElementById('lng').value = '';
   document.getElementById('coordsDisplay').textContent = 'No location selected';
   document.getElementById('mapHint').textContent = '📍 Click on map or use GPS to set your location';
 }
@@ -466,8 +514,8 @@ function toggleDelivery(cb) {
   document.getElementById('deliveryRadiusWrap').style.display = cb.checked ? 'block' : 'none';
 }
 function toggle24h(cb) {
-  const ot = document.getElementById('r_open_time');
-  const ct = document.getElementById('r_close_time');
+  const ot = document.getElementById('open_time');
+  const ct = document.getElementById('close_time');
   if (cb.checked) { ot.value='00:00'; ct.value='23:59'; ot.disabled=true; ct.disabled=true; }
   else            { ot.disabled=false; ct.disabled=false; }
 }
@@ -486,63 +534,63 @@ function previewLogo(input) {
 
 /* ── Summary ── */
 function buildSummary() {
-  const fields = [
-    ['Pharmacy', document.getElementById('r_name')?.value],
-    ['Phone',    document.getElementById('r_phone')?.value],
-    ['Drug Lic', document.getElementById('r_drug_license')?.value],
-    ['Address',  document.getElementById('r_address')?.value + ', ' + document.getElementById('r_area')?.value],
-    ['City',     document.getElementById('r_city')?.value + ' – ' + document.getElementById('r_pincode')?.value],
-    ['Hours',    document.getElementById('r_open_time')?.value + ' – ' + document.getElementById('r_close_time')?.value],
-    ['Delivery', document.getElementById('r_delivery')?.checked ? '✅ Yes' : '❌ No'],
-    ['Email',    document.getElementById('r_email')?.value],
-  ];
-  document.getElementById('summaryBlock').innerHTML = fields
-    .map(([k,v]) => `<div><strong>${k}:</strong> ${v||'—'}</div>`).join('');
+console.log('BUILD SUMMARY EMAIL:',document.getElementById('email')?.value);
+const fields = [
+['Pharmacy',document.getElementById('name')?.value],
+['Phone',document.getElementById('phone')?.value],
+['Drug Lic',document.getElementById('drug_license')?.value],
+['Address',document.getElementById('address')?.value+', '+document.getElementById('area')?.value],
+['City',document.getElementById('city')?.value+' – '+document.getElementById('pincode')?.value],
+['Hours',document.getElementById('open_time')?.value+' – '+document.getElementById('close_time')?.value],
+['Delivery',document.getElementById('delivery')?.checked?'✅ Yes':'❌ No'],
+['Email',document.getElementById('email')?.value],
+];
+
+document.getElementById('summaryBlock').innerHTML =
+fields.map(([k,v])=>`<div><strong>${k}:</strong> ${v||'—'}</div>`).join('');
 }
 
 /* ── Submit ── */
-async function submitRegistration() {
-  if (!validateStep(4)) return;
-  const btn = document.getElementById('submitRegBtn');
-  const sp  = document.getElementById('submitRegSpinner');
-  const bt  = document.getElementById('submitRegText');
-  btn.disabled=true; sp.style.display='block'; bt.textContent='Submitting…';
+document.addEventListener('DOMContentLoaded', () => {
+const form = document.getElementById('pharmacyForm');
 
-  const fd = new FormData();
-  fd.append('name',            document.getElementById('r_name').value.trim());
-  fd.append('proprietor',      document.getElementById('r_proprietor').value.trim());
-  fd.append('phone',           document.getElementById('r_phone').value.trim());
-  fd.append('alt_phone',       document.getElementById('r_alt_phone').value.trim());
-  fd.append('drug_license',    document.getElementById('r_drug_license').value.trim());
-  fd.append('gst',             document.getElementById('r_gst').value.trim());
-  fd.append('email',           document.getElementById('r_email').value.trim());
-  fd.append('password',        document.getElementById('r_password').value);
-  fd.append('address',         document.getElementById('r_address').value.trim());
-  fd.append('area',            document.getElementById('r_area').value.trim());
-  fd.append('city',            document.getElementById('r_city').value.trim());
-  fd.append('pincode',         document.getElementById('r_pincode').value.trim());
-  fd.append('lat',             document.getElementById('r_lat').value);
-  fd.append('lng',             document.getElementById('r_lng').value);
-  fd.append('opening_time',    document.getElementById('r_open_time').value);
-  fd.append('closing_time',    document.getElementById('r_close_time').value);
-  fd.append('accepts_delivery',document.getElementById('r_delivery').checked ? 'true' : 'false');
-  fd.append('delivery_radius', document.getElementById('r_del_radius').value);
-  const logo = document.getElementById('r_logo').files[0];
-  if (logo) fd.append('logo', logo);
-
-  try {
-    const res  = await fetch('/api/pharmacy/register', {method:'POST', body:fd});
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    // Show success step
-    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('stepSuccess').classList.add('active');
-    document.querySelectorAll('.step-tab').forEach(t => t.classList.add('done'));
-  } catch(err) {
-    showToast('❌ ' + err.message, 'error');
-    btn.disabled=false; sp.style.display='none'; bt.textContent='✅ Submit Registration';
-  }
+if (!form) {
+console.error('❌ pharmacyForm not found');
+return;
 }
+
+form.addEventListener('submit', async e => {
+e.preventDefault();
+
+console.log('✅ Submit event fired');
+
+if (!validateStep(4)) return;
+
+const fd = new FormData(form);
+
+try {
+const res = await fetch('/api/pharmacy/register', {
+method:'POST',
+body:fd
+});
+
+const data = await res.json();
+console.log('Registration response:',data);
+
+if (!res.ok) {
+showToast(data.error || 'Registration failed','error');
+return;
+}
+
+showToast(data.message || 'Registration successful','success');
+window.location.href='/pharmacy/login';
+
+} catch(err) {
+console.error('Registration error:',err);
+showToast('⚠️ Registration failed. Please try again.','error');
+}
+});
+});
 </script>
 </body>
 </html>

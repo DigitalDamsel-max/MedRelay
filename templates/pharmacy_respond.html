@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Respond to Prescription - MedRelay</title>
+    <style>
+        :root {
+            --cream: #faf7f0;
+            --white: #ffffff;
+            --navy: #14213d;
+            --muted: #6b7280;
+            --border: #e6e2d8;
+            --teal: #0d9e8a;
+            --teal-d: #0b7d6c;
+            --teal-ll: #e5f5f2;
+            --danger: #dc3545;
+            --shadow: 0 2px 10px rgba(20, 33, 61, 0.06);
+            --serif: 'Georgia', 'Times New Roman', serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--cream);
+            margin: 0;
+            padding: 30px;
+            color: var(--navy);
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        .back {
+            background: var(--white);
+            color: var(--navy);
+            border: 1.5px solid var(--border);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            margin-bottom: 18px;
+            transition: border-color 0.2s;
+        }
+        .back:hover {
+            border-color: var(--teal);
+            color: var(--teal-d);
+        }
+        .card {
+            background: var(--white);
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        h1, h2 {
+            font-family: var(--serif);
+            color: var(--navy);
+        }
+        h1 {
+            font-size: 27px;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        h2 {
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .card p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        .card p strong {
+            color: var(--teal-d);
+            margin-right: 4px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--navy);
+            margin-bottom: 6px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            box-sizing: border-box;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--cream);
+            color: var(--navy);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--teal);
+            background: var(--white);
+        }
+        textarea {
+            min-height: 80px;
+        }
+        .medicine {
+            border: 1.5px solid var(--border);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            background: var(--teal-ll);
+        }
+        .medicine label {
+            color: var(--teal-d);
+        }
+        .medicine-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .add {
+            background: var(--white);
+            color: var(--navy);
+            border: 1.5px solid var(--border);
+        }
+        .add:hover {
+            border-color: var(--teal);
+            color: var(--teal-d);
+        }
+        .submit {
+            background: var(--teal);
+            color: white;
+            font-size: 16px;
+            width: 100%;
+        }
+        .submit:hover {
+            background: var(--teal-d);
+        }
+        .remove {
+            background: var(--danger);
+            color: white;
+            margin-top: 10px;
+        }
+        .remove:hover {
+            background: #c0293a;
+        }
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        @media(max-width:700px) {
+            .medicine-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <button class="back"
+            onclick="window.location.href='/pharmacy/dashboard'">
+        ← Back to Dashboard
+    </button>
+    <div class="card">
+        <h1>Respond to Prescription</h1>
+        <p>
+            <strong>Prescription ID:</strong>
+            {{ request_data.prescription_id }}
+        </p>
+        <p>
+            <strong>Patient:</strong>
+            {{ request_data.patient_name }}
+        </p>
+        <p>
+            <strong>Area:</strong>
+            {{ request_data.area }}
+        </p>
+        <p>
+            <strong>Phone:</strong>
+            {{ request_data.phone }}
+        </p>
+
+        {% if request_data.notes %}
+        <p>
+            <strong>Patient Notes:</strong>
+            {{ request_data.notes }}
+        </p>
+        {% endif %}
+    </div>
+    <div class="card">
+
+        <h2>Medicine Availability</h2>
+
+        <div id="medicines">
+
+            <div class="medicine">
+
+                <label>Medicine Name</label>
+
+                <input
+                    type="text"
+                    name="medicine_name[]"
+                    placeholder="Medicine name"
+                    required
+                >
+
+                <label>Quantity</label>
+
+                <input
+                    type="text"
+                    name="quantity[]"
+                    placeholder="Example: 10 tablets"
+                >
+
+                <label>Available?</label>
+
+                <select name="is_available[]">
+                    <option value="1">Available</option>
+                    <option value="0">Not Available</option>
+                </select>
+
+                <label>Unit Price</label>
+
+                <input
+                    type="number"
+                    step="0.01"
+                    name="unit_price[]"
+                    placeholder="0.00"
+                >
+
+                <label>Substitute Medicine</label>
+
+                <input
+                    type="text"
+                    name="substitute_name[]"
+                    placeholder="Optional"
+                >
+
+                <label>Substitute Price</label>
+
+                <input
+                    type="number"
+                    step="0.01"
+                    name="substitute_price[]"
+                    placeholder="Optional"
+                >
+
+            </div>
+
+        </div>
+
+        <button type="button" class="add" onclick="addMedicine()">
+            + Add Medicine
+        </button>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Response Details</h2>
+
+        <label>Availability</label>
+
+        <select id="availability">
+
+            <option value="all">All medicines available</option>
+            <option value="partial">Some medicines available</option>
+            <option value="none">No medicines available</option>
+
+        </select>
+
+
+        <label>Total Price</label>
+
+        <input
+            type="number"
+            id="total_price"
+            step="0.01"
+            placeholder="Total price"
+        >
+
+
+        <label>Delivery Available?</label>
+
+        <select id="delivery_available">
+
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+
+        </select>
+
+
+        <label>Estimated Time (minutes)</label>
+
+        <input
+            type="number"
+            id="estimated_time_min"
+            placeholder="Example: 30"
+        >
+
+
+        <label>Notes</label>
+
+        <textarea
+            id="notes"
+            rows="4"
+            placeholder="Additional information..."
+        ></textarea>
+
+
+        <br>
+
+        <button class="submit" onclick="submitResponse()">
+            Submit Response
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function addMedicine() {
+
+    const container =
+        document.getElementById('medicines');
+
+    const div =
+        document.createElement('div');
+
+    div.className = 'medicine';
+
+    div.innerHTML = `
+
+        <label>Medicine Name</label>
+
+        <input
+            type="text"
+            name="medicine_name[]"
+            required
+        >
+
+        <label>Quantity</label>
+
+        <input
+            type="text"
+            name="quantity[]"
+        >
+
+        <label>Available?</label>
+
+        <select name="is_available[]">
+            <option value="1">Available</option>
+            <option value="0">Not Available</option>
+        </select>
+
+        <label>Unit Price</label>
+
+        <input
+            type="number"
+            step="0.01"
+            name="unit_price[]"
+        >
+
+        <label>Substitute Medicine</label>
+
+        <input
+            type="text"
+            name="substitute_name[]"
+        >
+
+        <label>Substitute Price</label>
+
+        <input
+            type="number"
+            step="0.01"
+            name="substitute_price[]"
+        >
+
+    `;
+
+    container.appendChild(div);
+}
+
+
+async function submitResponse() {
+
+    const formData = new FormData();
+
+    formData.append(
+        'prescription_id',
+        '{{ request_data.prescription_id }}'
+    );
+
+    formData.append(
+        'availability',
+        document.getElementById('availability').value
+    );
+
+    formData.append(
+        'total_price',
+        document.getElementById('total_price').value
+    );
+
+    formData.append(
+        'delivery_available',
+        document.getElementById('delivery_available').value
+    );
+
+    formData.append(
+        'estimated_time_min',
+        document.getElementById('estimated_time_min').value
+    );
+
+    formData.append(
+        'notes',
+        document.getElementById('notes').value
+    );
+
+
+    document
+        .querySelectorAll('[name="medicine_name[]"]')
+        .forEach(input =>
+            formData.append('medicine_name[]', input.value)
+        );
+
+    document
+        .querySelectorAll('[name="quantity[]"]')
+        .forEach(input =>
+            formData.append('quantity[]', input.value)
+        );
+
+    document
+        .querySelectorAll('[name="is_available[]"]')
+        .forEach(input =>
+            formData.append('is_available[]', input.value)
+        );
+
+    document
+        .querySelectorAll('[name="unit_price[]"]')
+        .forEach(input =>
+            formData.append('unit_price[]', input.value)
+        );
+
+    document
+        .querySelectorAll('[name="substitute_name[]"]')
+        .forEach(input =>
+            formData.append('substitute_name[]', input.value)
+        );
+
+    document
+        .querySelectorAll('[name="substitute_price[]"]')
+        .forEach(input =>
+            formData.append('substitute_price[]', input.value)
+        );
+
+
+    const res = await fetch(
+        '/api/pharmacy/respond/' +
+        '{{ request_data.prescription_id }}',
+        {
+            method: 'POST',
+            body: formData
+        }
+    );
+
+
+    const data = await res.json();
+
+
+    if (data.success) {
+
+        alert('Response submitted successfully!');
+
+        window.location.href =
+            '/pharmacy/dashboard';
+
+    } else {
+
+        alert(data.error || 'Failed to submit response');
+
+    }
+
+}
+
+</script>
+</body>
+</html>

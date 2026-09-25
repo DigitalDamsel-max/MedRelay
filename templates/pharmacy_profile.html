@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Pharmacy Profile - MedRelay</title>
+
+    <style>
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #f7f5ef;
+        }
+
+        .topbar {
+            height: 75px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 35px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .logo {
+            font-size: 30px;
+            font-weight: bold;
+            color: #079b8e;
+        }
+
+        .layout {
+            display: flex;
+            height: calc(100vh - 75px);
+        }
+
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0;
+            background: #14213d;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            height: 96%;
+            overflow-y: auto;
+        }
+        
+        .sidebar h4 {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 17px;
+            color: white;
+            letter-spacing: 1px;
+            margin: 0;
+            padding: 20px 20px 24px;
+        }
+
+        .sidebar-link {
+            color: white;
+            text-decoration: none;
+            padding: 14px 16px;
+            margin-bottom: 6px;
+            border-radius: 9px;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,.1);
+        }
+
+        .sidebar-link.active {
+            background: #0da79a;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding-top: 16px;
+        }
+        
+        .logout-btn {
+            width: 100%;
+            padding: 13px;
+            background: transparent;
+            color: white;
+            border: 1px solid #64748b;
+            border-radius: 9px;
+            cursor: pointer;
+        }
+
+        .content {
+            flex: 1;
+            padding: 10px 40px ;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: #14213d;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: #f7f8fa;
+            border-radius: 8px;
+        }
+
+        .info-item strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .order-box {
+            padding: 25px;
+            border-radius: 12px;
+            background: #f7f8fa;
+        }
+
+        .order-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #079b8e;
+        }
+
+        .order-box a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #079b8e;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <div class="logo">
+        MedRelay
+    </div>
+
+    <div>
+        <strong>{{ pharmacy.name }}</strong>
+    </div>
+
+</header>
+
+
+<div class="layout">
+
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+        <h4> PHARMACY PANEL </h4>
+
+        <a href="/pharmacy/dashboard" class="sidebar-link"> Orders Requested </a>
+        <a href="/pharmacy/orders/responded" class="sidebar-link"> Orders Responded </a>
+        <a href="/pharmacy/orders/completed" class="sidebar-link"> Orders Completed </a>
+        <a href="/pharmacy/profile" class="sidebar-link active"> Profile </a>
+
+        <div class="sidebar-bottom">
+            <button onclick="logout()" class="logout-btn">
+                ↪ Logout
+            </button>
+        </div>
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+        <h1>Pharmacy Profile</h1>
+
+        <p> Manage your pharmacy information and view your order activity. </p>
+
+        <!-- PHARMACY INFORMATION -->
+        <div class="card">
+            <h2>Pharmacy Information</h2>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Pharmacy Name</strong>
+                    {{ pharmacy.name }}
+                </div>
+
+                <div class="info-item">
+                    <strong>Phone</strong>
+                    {{ pharmacy.phone }}
+                </div>
+
+                <div class="info-item">
+                    <strong>Email</strong>
+                    {{ pharmacy.email }}
+                </div>
+
+                <div class="info-item">
+                    <strong>Area</strong>
+                    {{ pharmacy.area }}
+                </div>
+
+                <div class="info-item">
+                    <strong>Address</strong>
+                    {{ pharmacy.address_line }}
+                </div>
+
+                <div class="info-item">
+                    <strong>Pincode</strong>
+                    {{ pharmacy.pincode }}
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ORDER SUMMARY -->
+        <div class="card">
+            <h2>Order Activity</h2>
+
+            <div class="orders-grid">
+                <div class="order-box">
+                    <div>
+                        Requested Orders
+                    </div>
+
+                    <div
+                        class="order-number"
+                        id="requestedCount">
+                        0
+                    </div>
+
+                    <a href="/pharmacy/requests">
+                        View Requests →
+                    </a>
+                </div>
+
+                <div class="order-box">
+                    <div>
+                        Orders Responded
+                    </div>
+
+                    <div
+                        class="order-number"
+                        id="respondedCount">
+                        0
+                    </div>
+
+                    <a href="/pharmacy/orders/responded">
+                        View Responded →
+                    </a>
+                </div>
+
+                <div class="order-box">
+                    <div>
+                        Orders Completed
+                    </div>
+
+                    <div
+                        class="order-number"
+                        id="completedCount">
+                        0
+                    </div>
+
+                    <a href="/pharmacy/orders/completed">
+                        View Completed →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+
+<script>
+async function loadProfileStats() {
+    try {
+        const response =
+            await fetch('/api/pharmacy/stats');
+
+        const data =
+            await response.json();
+
+        if (!data.success) {
+            return;
+        }
+
+        document.getElementById('requestedCount').textContent =
+            data.requested_orders ?? 0;
+
+        document.getElementById('respondedCount').textContent =
+            data.responded_orders ?? 0;
+
+        document.getElementById('completedCount').textContent =
+            data.completed_orders ?? 0;
+
+    } catch (error) {
+        console.error(
+            'Unable to load profile statistics:',
+            error
+        );
+    }
+}
+
+async function logout() {
+    await fetch(
+        '/pharmacy/logout',
+        {
+            method: 'POST'
+        }
+    );
+    window.location.href =
+        '/pharmacy/login';
+}
+
+loadProfileStats();
+
+</script>
+
+</body>
+
+</html>

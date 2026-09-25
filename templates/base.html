@@ -11,17 +11,24 @@
 
 <!-- ── NAVIGATION ── -->
 <nav class="nav" id="mainNav">
-  <a href="/" class="nav-logo">
+  <a href="{{ url_for('index') }}" class="nav-logo">
     <div class="nav-logo-mark">💊</div>
     <div class="nav-logo-text"><em>Med</em><span>Relay</span></div>
   </a>
   <ul class="nav-links">
-    <li><a href="/">Home</a></li>
-    <li><a href="/upload">Upload Rx</a></li>
-    <li><a href="/map">Find Pharmacy</a></li>
-    <li><a href="/responses">Responses</a></li>
-  </ul>
-  <button class="nav-cta" onclick="location.href='/upload'">📄 Upload Prescription</button>
+    <li><a href="{{ url_for('index') }}">Home</a></li>
+    <li><a href="{{ url_for('upload_page') }}">Upload Rx</a></li>
+    <li><a href="{{ url_for('map_page') }}">Find Pharmacy</a></li>
+    <li><a href="{{ url_for('responses_page') }}">Responses</a></li>
+   </ul>
+
+  {% if session.get('customer_id') %}
+    <span class="nav-user">Hi, {{ session.get('customer_name') }}</span>
+    <button class="nav-cta" onclick="window.location.href='{{ url_for('customer_logout_page') }}'">Logout</button>
+  {% else %}
+    <button class="nav-cta" onclick="window.location.href='{{ url_for('customer_login_page') }}'">Login</button>
+  {% endif %}
+
   <button class="nav-burger" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>

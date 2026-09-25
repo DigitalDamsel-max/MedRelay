@@ -1,7 +1,3 @@
-/* ═══════════════════════════════════════════════
-   MedRelay  —  static/js/upload.js
-   ═══════════════════════════════════════════════ */
-
 document.addEventListener('DOMContentLoaded', () => {
 
   /* File uploader */
@@ -46,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
       files.forEach(f => fd.append('images', f));
 
       const res  = await fetch('/api/prescriptions', { method: 'POST', body: fd });
+      if (!res.ok)
+        throw new Error("Server error");
+
       const data = await res.json();
 
       if (!data.success) throw new Error(data.errors?.join(', ') || 'Upload failed');

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Registration — MedRelay</title>
+<style>
+  :root {
+    --cream: #faf7f0;
+    --white: #ffffff;
+    --navy: #14213d;
+    --muted: #6b7280;
+    --border: #e6e2d8;
+    --teal: #0d9e8a;
+    --teal-d: #0b7d6c;
+    --teal-ll: #e5f5f2;
+    --danger: #dc2626;
+    --danger-bg: #fdecec;
+    --shadow: 0 2px 10px rgba(20, 33, 61, 0.06);
+    --serif: 'Georgia', 'Times New Roman', serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+  }
+
+  /* ================= NAV ================= */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-mark {
+    width: 34px;
+    height: 34px;
+    background: var(--teal);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .nav-logo-text {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: bold;
+    color: var(--navy);
+  }
+
+  .nav-logo-text span {
+    color: var(--teal);
+    font-style: italic;
+  }
+
+  .nav-links {
+    display: flex;
+    list-style: none;
+    gap: 28px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    color: var(--navy);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .nav-links a:hover {
+    color: var(--teal-d);
+  }
+
+  .nav-cta {
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .nav-cta:hover {
+    background: #0d1a30;
+  }
+
+  .nav-cta.is-logout {
+    background: transparent;
+    color: var(--danger);
+    border: 1.5px solid var(--danger);
+  }
+
+  .nav-cta.is-logout:hover {
+    background: var(--danger-bg);
+  }
+
+  .nav-burger {
+    display: none;
+  }
+
+  /* ================= PAGE ================= */
+  .page {
+    display: flex;
+    justify-content: center;
+    padding: 64px 24px 90px;
+  }
+
+  .auth-container {
+    background: var(--white);
+    width: 100%;
+    max-width: 440px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 40px 36px;
+  }
+
+  .auth-container h2 {
+    font-family: var(--serif);
+    font-size: 27px;
+    color: var(--navy);
+    margin: 0 0 8px;
+    text-align: center;
+  }
+
+  .auth-container .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 26px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 7px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    background: var(--cream);
+    color: var(--navy);
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--teal);
+    background: var(--white);
+  }
+
+  .btn {
+    border: none;
+    border-radius: 9px;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--teal);
+    color: var(--white);
+    margin-top: 6px;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: var(--teal-d);
+  }
+
+  #registerError {
+    color: var(--danger);
+    background: var(--danger-bg);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 14px;
+    text-align: center;
+    min-height: 0;
+  }
+
+  #registerError:empty {
+    display: none;
+  }
+
+  .auth-container p.foot {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 22px;
+  }
+
+  .auth-container p.foot a {
+    color: var(--teal-d);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .auth-container p.foot a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 480px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text">Med<span>Relay</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/upload" id="uploadRxLink">Upload Rx</a></li>
+    <li><a href="/map">Find Pharmacy</a></li>
+  </ul>
+  <button class="nav-cta" id="navLoginBtn"> Login </button>
+  <button class="nav-burger"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page">
+
+    <div class="auth-container">
+
+        <h2>Create Your Account</h2>
+        <p class="subtitle">Order medicines and track your prescriptions with MedRelay.</p>
+
+        <form id="customerRegisterForm">
+
+            <div class="form-row">
+
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="fullName" name="fullName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-row">
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" name="password" required minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                Create Account
+            </button>
+
+        </form>
+
+        <div id="registerError"></div>
+
+        <p class="foot">
+            Already have an account?
+            <a href="/pharmacy/login?role=customer"> Login </a>
+        </p>
+
+    </div>
+</div>
+
+<script>
+
+document.getElementById('customerRegisterForm').addEventListener('submit', async function (e) {
+
+    e.preventDefault();
+    const fullName = document.getElementById('fullName').value;
+    const phone = document.getElementById('phone').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    const errorBox = document.getElementById('registerError');
+    errorBox.textContent = '';
+
+    if (password !== confirmPassword) {
+        errorBox.textContent = 'Passwords do not match.';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/customer/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+                full_name: fullName,
+                phone: phone,
+                email: email,
+                password: password
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            /* Send them to login, pre-selected on the Customer tab */
+            window.location.href = '/pharmacy/login?role=customer';
+
+        } else {
+            errorBox.textContent = result.error || 'Registration failed';
+        }
+
+    } catch (error) {
+        errorBox.textContent = 'Something went wrong. Please try again.';
+        console.error(error);
+    }
+});
+
+/* =====================================================
+   SHARED NAV AUTH STATE (same as the login page)
+===================================================== */
+function isCustomerLoggedIn() {
+    return localStorage.getItem('medrelay_customer_logged_in') === '1';
+}
+
+async function customerLogout() {
+    try {
+        await fetch('/api/customer/logout', { method: 'POST' });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        localStorage.removeItem('medrelay_customer_logged_in');
+        window.location.href = '/';
+    }
+}
+
+function updateNavForAuth() {
+    const loginBtn = document.getElementById('navLoginBtn');
+
+    if (isCustomerLoggedIn()) {
+        loginBtn.textContent = 'Logout';
+        loginBtn.classList.add('is-logout');
+        loginBtn.onclick = customerLogout;
+    } else {
+        loginBtn.textContent = 'Login';
+        loginBtn.classList.remove('is-logout');
+        loginBtn.onclick = function () {
+            location.href = '/customer/login';
+        };
+    }
+}
+
+document.getElementById('uploadRxLink').addEventListener('click', function (e) {
+    if (!isCustomerLoggedIn()) {
+        e.preventDefault();
+        window.location.href = '/customer/login?role=customer';
+    }
+});
+
+updateNavForAuth();
+
+</script>
+</body>
+</html>

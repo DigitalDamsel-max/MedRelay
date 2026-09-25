@@ -1,10 +1,3 @@
-# ═══════════════════════════════════════════════════════════════════════════
-#  MedRelay — Flask Backend   app.py
-#
-#  pip install flask flask-cors pillow werkzeug requests mysql-connector-python bcrypt
-#  python app.py  →  http://localhost:5000
-# ═══════════════════════════════════════════════════════════════════════════
-
 import os, uuid, math, json, time, hashlib
 from datetime import datetime
 from functools import wraps
@@ -14,6 +7,9 @@ from flask import (Flask, request, jsonify, render_template,
                    send_from_directory, session, redirect, url_for)
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+
+from dotenv import load_dotenv
+load_dotenv()
 
 try:
     import bcrypt
@@ -25,20 +21,20 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'medrelay-dev-secret-change-in-prod')
 CORS(app, supports_credentials=True)
 
-# ── Upload ────────────────────────────────────────────────────────────────
+import os
+
+# ── Upload ─────
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXT   = {'jpg','jpeg','png','pdf','webp'}
 app.config['UPLOAD_FOLDER']      = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ── MySQL ─────────────────────────────────────────────────────────────────
-import mysql.connector
+# ── MySQL ──
 from mysql.connector import pooling
-
 DB_CFG = dict(
     host=os.getenv('DB_HOST','localhost'), port=int(os.getenv('DB_PORT',3306)),
-    user=os.getenv('DB_USER','root'),     password='Pihu@4124',
+    user=os.getenv('DB_USER','root'),     password=os.getenv('DB_PASSWORD'),
     database=os.getenv('DB_NAME','medrelay'),
     charset='utf8mb4', autocommit=True,
 )
@@ -50,7 +46,8 @@ except Exception as e:
     print(f'[DB] WARNING: {e}')
 
 def db_conn():
-    if not _pool: raise RuntimeError('DB not available')
+    if not _pool: 
+        raise RuntimeError('DB not available')
     return _pool.get_connection()
 
 def qry(sql, params=None, fetch='all'):
@@ -65,7 +62,7 @@ def qry(sql, params=None, fetch='all'):
     finally:
         conn.close()
 
-# ── Passwords ─────────────────────────────────────────────────────────────
+# ── Passwords ──
 def hash_pw(plain):
     if USE_BCRYPT:
         return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
@@ -77,7 +74,7 @@ def check_pw(plain, hashed):
         except: pass
     return hashlib.sha256(plain.encode()).hexdigest() == hashed
 
-# ── Auth decorator ────────────────────────────────────────────────────────
+# ── Auth decorators ─
 def pharmacy_required(f):
     @wraps(f)
     def wrap(*a, **kw):
@@ -86,12 +83,27 @@ def pharmacy_required(f):
         return f(*a, **kw)
     return wrap
 
-# ── Overpass ──────────────────────────────────────────────────────────────
+def customer_required(f):
+    """Gate a route behind customer login.
+    API routes (/api/...) get a 401 JSON error.
+    Page routes redirect to the customer login page, remembering where to
+    return to afterwards via ?next=...
+    """
+    @wraps(f)
+    def wrap(*a, **kw):
+        if 'customer_id' not in session:
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'error': 'Please login first'}), 401
+            return redirect(url_for('customer_login_page', next=request.path))
+        return f(*a, **kw)
+    return wrap
+
+# ── Overpass ──
 OVERPASS = ['https://overpass-api.de/api/interpreter',
             'https://overpass.kumi.systems/api/interpreter']
 _ov_cache = {}; CACHE_TTL = 300
 
-# ── Utils ─────────────────────────────────────────────────────────────────
+# ── Utils ─
 def new_uuid(): return str(uuid.uuid4())
 
 def track_id():
@@ -137,16 +149,21 @@ def norm_overpass(elements, ulat, ulng):
                     'dist_km':haversine(ulat,ulng,lat,lng),
                     'open':parse_oh(t.get('opening_hours')),
                     'hours':t.get('opening_hours',''),
-                    'rating':0, 'logo':'', 'delivery':False, 'source':'osm'})
+                    'logo':'', 'delivery':False, 'source':'osm'})
     return sorted(out, key=lambda x: x['dist_km'])
 
 
-# ══════════════════════════════════════════════════════════════════════════
 #  PAGE ROUTES
-# ══════════════════════════════════════════════════════════════════════════
-
 @app.route('/')
-def index(): return render_template('index.html')
+def index():
+    # customer_id / customer_name are already available inside index.html
+    # via Flask's automatic `session` template global, but we also pass
+    # them explicitly for clarity / in case you template-inherit elsewhere.
+    return render_template(
+        'index.html',
+        customer_logged_in='customer_id' in session,
+        customer_name=session.get('customer_name'),
+    )
 
 @app.route('/upload')
 def upload_page(): return render_template('upload.html')
@@ -155,22 +172,53 @@ def upload_page(): return render_template('upload.html')
 def map_page(): return render_template('map.html')
 
 @app.route('/responses')
-def responses_page(): return render_template('responses.html')
+@customer_required
+def responses_page():
+    # Only a logged-in customer can view the responses page at all.
+    return render_template('responses.html')
 
-@app.route('/pharmacy/register')
-def pharmacy_register_page(): return render_template('pharmacy_register.html')
+@app.route("/nearby-pharmacies", methods=["POST"])
+def nearby_pharmacies():
+    pass
 
-@app.route('/pharmacy/login')
+@app.route('/pharmacy/login', methods=['GET', 'POST'])
 def pharmacist_login_page():
-    if 'pharmacy_id' in session:
-        return redirect(url_for('pharmacist_dashboard'))
-    return render_template('pharmacy_login.html')
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
 
-@app.route('/pharmacy/dashboard')
-@pharmacy_required
-def pharmacist_dashboard(): return render_template('pharmacy_dashboard.html')
+        pharmacy = qry("""
+            SELECT pharmacy_id, name, email, password_hash
+            FROM pharmacies
+            WHERE email = %s
+              AND is_active = 1
+              AND is_verified = 1
+        """, (email,), fetch='one')
 
-@app.route('/pharmacy/logout')
+        if not pharmacy:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid email or password'
+            }), 401
+
+        if not check_pw(password, pharmacy['password_hash']):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid email or password'
+            }), 401
+
+        session['pharmacy_id'] = pharmacy['pharmacy_id']
+        session['pharmacy_name'] = pharmacy['name']
+
+        return jsonify({
+            'success': True,
+            'redirect': '/pharmacy/dashboard'
+        })
+
+    return render_template('login.html')
+ 
+
+@app.route('/pharmacy/logout', methods=['GET','POST'])
 def pharmacy_logout():
     session.clear()
     return redirect(url_for('pharmacist_login_page'))
@@ -180,9 +228,7 @@ def serve_upload(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
-# ══════════════════════════════════════════════════════════════════════════
 #  API: Health
-# ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/health')
 def health():
     try: qry('SELECT 1', fetch='one'); db_ok=True
@@ -190,60 +236,284 @@ def health():
     return jsonify({'status':'ok','db':db_ok,'time':datetime.utcnow().isoformat()})
 
 
+@app.route('/pharmacy/register')
+def pharmacy_register_page(): return render_template('pharmacy_register.html')
+
+@app.route('/customer/register')
+def customer_register_page(): return render_template('customer_register.html')
+
+
 # ══════════════════════════════════════════════════════════════════════════
+#  Customer login page + logout page  (NEW)
+# ══════════════════════════════════════════════════════════════════════════
+@app.route('/customer/login', methods=['GET'])
+def customer_login_page():
+    if 'customer_id' in session:
+        return redirect(url_for('index'))
+    next_url = request.args.get('next', '')
+    return render_template('login.html', next_url=next_url)
+
+
+@app.route('/customer/logout', methods=['GET', 'POST'])
+def customer_logout_page():
+    session.pop('customer_id', None)
+    session.pop('customer_name', None)
+    session.pop('customer_email', None)
+    return redirect(url_for('index'))
+
+
 #  API: Pharmacy Registration
-# ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/pharmacy/register', methods=['POST'])
 def api_pharmacy_register():
     d = request.form
-    for f in ['name','phone','email','password','address','area','city','pincode','drug_license','lat','lng']:
-        if not d.get(f,'').strip():
-            return jsonify({'success':False,'error':f'"{f}" is required'}), 400
-    try:
-        ex = qry('SELECT pharmacy_id FROM pharmacies WHERE phone=%s OR email=%s OR drug_license_no=%s',
-                 (d['phone'], d['email'], d['drug_license']), fetch='one')
-        if ex: return jsonify({'success':False,'error':'Phone, email or drug license already registered'}), 409
-    except Exception as e:
-        return jsonify({'success':False,'error':str(e)}), 500
 
-    pid = new_uuid()
-    pw  = hash_pw(d['password'])
-    logo_path = ''
-    logo = request.files.get('logo')
-    if logo and logo.filename and allowed(logo.filename):
-        fn = secure_filename(f'{pid}_{logo.filename}')
-        logo.save(os.path.join(UPLOAD_FOLDER, fn))
-        logo_path = f'/uploads/{fn}'
+    # Required fields
+    for f in [
+        'name', 'phone', 'email', 'password',
+        'address', 'area', 'city', 'pincode',
+        'drug_license', 'lat', 'lng'
+    ]:
+        if not d.get(f, '').strip():
+            return jsonify({
+                'success': False,
+                'error': f'"{f}" is required'
+            }), 400
 
     try:
-        qry("""INSERT INTO pharmacies
-            (pharmacy_id,name,address_line,area,city,pincode,
-             phone,email,drug_license_no,gst_number,proprietor_name,
-             latitude,longitude,password_hash,logo_path,
-             delivery_radius_km,accepts_delivery,opening_time,closing_time,
-             is_active,is_verified,rating,total_ratings)
-            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,0,0.0,0)""",
-            (pid, d['name'].strip(), d['address'].strip(), d['area'].strip(),
-             d['city'].strip(), d['pincode'].strip(),
-             d['phone'].strip(), d['email'].strip(),
-             d['drug_license'].strip(), d.get('gst','').strip(),
-             d.get('proprietor','').strip(),
-             float(d['lat']), float(d['lng']),
-             pw, logo_path,
-             float(d.get('delivery_radius',5)),
-             1 if d.get('accepts_delivery') in ('true','1','on') else 0,
-             d.get('opening_time','09:00'), d.get('closing_time','21:00')),
-            fetch='insert')
+        # Check whether pharmacy is already registered
+        existing = qry(
+            '''
+            SELECT pharmacy_id
+            FROM pharmacies
+            WHERE phone = %s
+               OR email = %s
+               OR drug_license_no = %s
+            ''',
+            (
+                d['phone'],
+                d['email'],
+                d['drug_license']
+            ),
+            fetch='one'
+        )
+
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': 'Phone, email or drug license already registered'
+            }), 409
+
+
+        # --------------------------------------------------
+        # FIND CITY ID
+        # --------------------------------------------------
+        city = qry(''' SELECT city_id FROM cities
+            WHERE name = %s LIMIT 1 ''',
+            (d['city'].strip(),),
+            fetch='one'
+        )
+
+        if not city:
+            return jsonify({
+                'success': False,
+                'error': f'City "{d["city"].strip()}" not found'
+            }), 400
+
+        city_id = city['city_id'] if isinstance(city, dict) else city[0]
+
+
+        # --------------------------------------------------
+        # CREATE PHARMACY
+        # --------------------------------------------------
+        pid = new_uuid()
+        pw = hash_pw(d['password'])
+        qry(
+            '''INSERT INTO pharmacies(
+                pharmacy_id,
+                name,
+                address_line,
+                area,
+                city_id,
+                pincode,
+                phone,
+                email,
+                drug_license_no,
+                gst_number,
+                proprietor_name,
+                latitude,
+                longitude,
+                password_hash,
+                delivery_radius_km,
+                accepts_delivery,
+                opening_time,
+                closing_time,
+                is_active,
+                is_verified
+            )
+            VALUES
+            (
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s
+            )
+            ''',
+            (
+                pid,
+                d['name'].strip(),
+                d['address'].strip(),
+                d['area'].strip(),
+                city_id,
+                d['pincode'].strip(),
+                d['phone'].strip(),
+                d['email'].strip(),
+                d['drug_license'].strip(),
+                d.get('gst', '').strip(),
+                d.get('proprietor', '').strip(),
+                float(d['lat']),
+                float(d['lng']),
+                pw,
+                float(d.get('del_radius', 5)),
+                1 if d.get('delivery') in ('true', '1', 'on') else 0,
+                d.get('open_time', '09:00'),
+                d.get('close_time', '21:00'),
+                1,
+                1
+            ),
+            fetch='insert'
+        )
+
+        return jsonify({
+            'success': True,
+            'pharmacy_id': pid,
+            'message': 'Registration submitted. Our team will verify within 24 hours.'
+        })
+
     except Exception as e:
-        return jsonify({'success':False,'error':str(e)}), 500
-
-    return jsonify({'success':True,'pharmacy_id':pid,
-                    'message':'Registration submitted. Our team will verify within 24 hours.'})
-
-
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
 # ══════════════════════════════════════════════════════════════════════════
+#  API: Customer Registration
+# ══════════════════════════════════════════════════════════════════════════
+@app.route('/api/customer/register', methods=['POST'])
+def api_customer_register():
+    d = request.get_json(force=True)
+
+    for f in ['full_name', 'phone', 'email', 'password']:
+        if not d.get(f, '').strip():
+            return jsonify({
+                'success': False,
+                'error': f'"{f}" is required'
+            }), 400
+
+    try:
+        existing = qry(
+            '''
+            SELECT customer_id
+            FROM customers
+            WHERE phone = %s
+               OR email = %s
+            ''',
+            (d['phone'].strip(), d['email'].strip()),
+            fetch='one'
+        )
+
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': 'Phone or email already registered'
+            }), 409
+
+        cid = new_uuid()
+        pw  = hash_pw(d['password'])
+
+        qry(
+            '''
+            INSERT INTO customers(
+                customer_id, full_name, phone, email, password_hash, is_active
+            )
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ''',
+            (
+                cid,
+                d['full_name'].strip(),
+                d['phone'].strip(),
+                d['email'].strip(),
+                pw,
+                1
+            ),
+            fetch='insert'
+        )
+
+        return jsonify({
+            'success': True,
+            'customer_id': cid,
+            'message': 'Registration successful. You can now log in.'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+#  API: Customer Login
+@app.route('/api/customer/login', methods=['POST'])
+def api_customer_login():
+    data  = request.get_json(force=True)
+    email = data.get('email', '').strip()
+    pw    = data.get('password', '')
+
+    if not email or not pw:
+        return jsonify({'success': False, 'error': 'Email and password required'}), 400
+
+    try:
+        cust = qry('SELECT * FROM customers WHERE email=%s AND is_active=1', (email,), fetch='one')
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    if not cust or not check_pw(pw, cust.get('password_hash', '')):
+        return jsonify({'success': False, 'error': 'Invalid email or password'}), 401
+
+    session['customer_id']    = cust['customer_id']
+    session['customer_name']  = cust['full_name']
+    session['customer_email'] = cust['email']
+
+    return jsonify({
+        'success': True,
+        'customer_id': cust['customer_id'],
+        'name': cust['full_name']
+    })
+
+
+#  API: Customer Logout
+@app.route('/api/customer/logout', methods=['POST'])
+def api_customer_logout():
+    session.pop('customer_id', None)
+    session.pop('customer_name', None)
+    session.pop('customer_email', None)
+    return jsonify({'success': True})
+
+
+#  API: Currently logged-in customer (handy for JS on any page)
+@app.route('/api/customer/me')
+def api_customer_me():
+    if 'customer_id' not in session:
+        return jsonify({'success': True, 'logged_in': False})
+    return jsonify({
+        'success': True,
+        'logged_in': True,
+        'customer_id': session['customer_id'],
+        'name': session.get('customer_name'),
+        'email': session.get('customer_email'),
+    })
+
+    
 #  API: Pharmacy Login
-# ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/pharmacy/login', methods=['POST'])
 def api_pharmacy_login():
     data  = request.get_json(force=True)
@@ -282,73 +552,87 @@ def api_pharmacy_me():
         return jsonify({'success':False,'error':str(e)}), 500
 
 
-# ══════════════════════════════════════════════════════════════════════════
+#  API: Dashboard — pharmacy profile
+@app.route('/pharmacy/dashboard')
+def pharmacy_dashboard():
+    pharmacy_id = session.get('pharmacy_id')
+
+    if not pharmacy_id:
+        return redirect('/pharmacy/login')
+
+    pharmacy = qry("""
+        SELECT pharmacy_id, name, phone, email,
+               address_line, area, pincode,
+               accepts_delivery
+        FROM pharmacies
+        WHERE pharmacy_id = %s
+    """, (pharmacy_id,), fetch='one')
+
+    if not pharmacy:
+        session.clear()
+        return redirect('/pharmacy/login')
+
+    return render_template(
+        'pharmacy_dashboard.html',
+        pharmacy=pharmacy
+    )
+
+
 #  API: Dashboard — stats summary
-# ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/pharmacy/stats')
-@pharmacy_required
-def api_pharmacy_stats():
-    pid   = session['pharmacy_id']
-    today = datetime.now().strftime('%Y-%m-%d')
-    stats = {}
+def pharmacy_stats():
+    pharmacy_id = session.get('pharmacy_id')
+
+    if not pharmacy_id:
+        return jsonify({
+            'success': False,
+            'error': 'Please login first'
+        }), 401
+
     try:
-        def s(sql, p): return (qry(sql, p, fetch='one') or {})
+        # REQUESTED PRESCRIPTIONS
+        requested = qry("""
+            SELECT COUNT(*) AS total
+            FROM prescription_broadcasts
+            WHERE pharmacy_id = %s
+        """, (pharmacy_id,), fetch='one')
 
-        stats['pending_requests'] = s(
-            "SELECT COUNT(*) c FROM prescription_broadcasts WHERE pharmacy_id=%s AND status='sent'", (pid,)).get('c',0)
-        stats['today_orders'] = s(
-            "SELECT COUNT(*) c FROM orders WHERE pharmacy_id=%s AND DATE(placed_at)=%s", (pid,today)).get('c',0)
-        stats['total_orders'] = s(
-            "SELECT COUNT(*) c FROM orders WHERE pharmacy_id=%s", (pid,)).get('c',0)
-        stats['today_revenue'] = float(s(
-            "SELECT COALESCE(SUM(total_amount),0) s FROM orders WHERE pharmacy_id=%s AND DATE(placed_at)=%s AND payment_status='paid'",
-            (pid,today)).get('s',0))
-        stats['total_revenue'] = float(s(
-            "SELECT COALESCE(SUM(total_amount),0) s FROM orders WHERE pharmacy_id=%s AND payment_status='paid'",
-            (pid,)).get('s',0))
-        stats['avg_rating'] = round(float(s(
-            "SELECT COALESCE(AVG(score),0) a FROM ratings WHERE pharmacy_id=%s", (pid,)).get('a',0)), 1)
-        stats['total_ratings'] = s(
-            "SELECT COUNT(*) c FROM ratings WHERE pharmacy_id=%s", (pid,)).get('c',0)
-        stats['active_deliveries'] = s(
-            "SELECT COUNT(*) c FROM orders WHERE pharmacy_id=%s AND status='out_for_delivery'", (pid,)).get('c',0)
-        stats['unread_requests'] = stats['pending_requests']
-        return jsonify({'success':True,'stats':stats})
+        # RESPONDED ORDERS
+        responded = qry("""
+            SELECT COUNT(*) AS total
+            FROM orders
+            WHERE pharmacy_id = %s
+        """, (pharmacy_id,), fetch='one')
+
+        # COMPLETED ORDERS
+        completed = qry("""
+            SELECT COUNT(*) AS total
+            FROM orders
+            WHERE pharmacy_id = %s
+              AND status IN ('delivered', 'completed')
+        """, (pharmacy_id,), fetch='one')
+
+        return jsonify({
+            'success': True,
+            'requested_orders':
+                requested['total'] if requested else 0,
+
+            'responded_orders':
+                responded['total'] if responded else 0,
+
+            'completed_orders':
+                completed['total'] if completed else 0
+        })
+
     except Exception as e:
-        return jsonify({'success':False,'error':str(e)}), 500
+        print("PHARMACY STATS ERROR:", e)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
-# ══════════════════════════════════════════════════════════════════════════
-#  API: Dashboard — incoming prescription requests
-# ══════════════════════════════════════════════════════════════════════════
-@app.route('/api/pharmacy/requests')
-@pharmacy_required
-def api_pharmacy_requests():
-    pid = session['pharmacy_id']
-    try:
-        rows = qry("""
-            SELECT pb.broadcast_id, pb.prescription_id,
-                   pb.distance_km, pb.status AS broadcast_status, pb.sent_at,
-                   p.patient_name, p.phone, p.area, p.notes,
-                   p.status AS rx_status, p.created_at, p.expires_at,
-                   (SELECT COUNT(*) FROM prescription_images pi2
-                    WHERE pi2.prescription_id=p.prescription_id) AS image_count,
-                   (SELECT response_id FROM pharmacy_responses pr2
-                    WHERE pr2.prescription_id=p.prescription_id
-                      AND pr2.pharmacy_id=%s LIMIT 1) AS already_responded
-            FROM prescription_broadcasts pb
-            JOIN prescriptions p ON p.prescription_id=pb.prescription_id
-            WHERE pb.pharmacy_id=%s
-              AND p.expires_at > NOW()
-            ORDER BY pb.sent_at DESC LIMIT 60""", (pid, pid))
-        return jsonify({'success':True,'requests':rows})
-    except Exception as e:
-        return jsonify({'success':False,'error':str(e)}), 500
-
-
-# ══════════════════════════════════════════════════════════════════════════
 #  API: Dashboard — orders list
-# ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/pharmacy/orders')
 @pharmacy_required
 def api_pharmacy_orders():
@@ -373,9 +657,34 @@ def api_pharmacy_orders():
         return jsonify({'success':False,'error':str(e)}), 500
 
 
-# ══════════════════════════════════════════════════════════════════════════
+@app.route('/test-db')
+def test_db():
+    try:
+        rows = qry("""SELECT pharmacy_id, name, latitude, longitude,
+                   is_active, is_verified
+            FROM pharmacies""")
+
+        print("Number of pharmacies:", len(rows))
+
+        for r in rows:
+            print(r)
+
+        return jsonify({
+            'success': True,
+            'count': len(rows),
+            'pharmacies': rows
+        })
+
+    except Exception as e:
+        print(e)
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 #  API: Dashboard — order detail + status update
-# ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/pharmacy/orders/<order_id>', methods=['GET','PATCH'])
 @pharmacy_required
 def api_pharmacy_order(order_id):
@@ -407,73 +716,395 @@ def api_pharmacy_order(order_id):
             return jsonify({'success':False,'error':str(e)}), 500
 
 
-# ══════════════════════════════════════════════════════════════════════════
 #  API: Dashboard — submit availability response to a prescription
-# ══════════════════════════════════════════════════════════════════════════
-@app.route('/api/pharmacy/respond', methods=['POST'])
-@pharmacy_required
-def api_pharmacy_respond():
-    pid  = session['pharmacy_id']
-    data = request.get_json(force=True)
-    rx_id    = data.get('prescription_id')
-    meds     = data.get('medicines', [])
-    total    = data.get('total_price', 0)
-    notes    = data.get('notes', '')
-    delivery = bool(data.get('delivery_available', False))
-    eta      = data.get('estimated_time_min')
-
-    if not rx_id or not meds:
-        return jsonify({'success':False,'error':'Missing prescription_id or medicines'}), 400
-
-    all_a = all(m.get('available') for m in meds)
-    any_a = any(m.get('available') for m in meds)
-    avail = 'all' if all_a else ('partial' if any_a else 'none')
-    rid   = new_uuid()
+@app.route('/api/pharmacy/respond/<prescription_id>', methods=['POST'])
+def api_pharmacy_respond(prescription_id):
+    pharmacy_id = session.get('pharmacy_id')
+    if not pharmacy_id:
+        return jsonify({
+            'success': False,
+            'error': 'Please login first'
+        }), 401
+    data = request.form
 
     try:
-        ph = qry('SELECT name,phone FROM pharmacies WHERE pharmacy_id=%s', (pid,), fetch='one')
-        qry("""INSERT INTO pharmacy_responses
-            (response_id,prescription_id,pharmacy_id,pharmacy_osm_name,pharmacy_phone,
-             availability,total_price,delivery_available,estimated_time_min,notes)
-            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-            (rid,rx_id,pid,ph['name'],ph['phone'],avail,total,delivery,eta,notes),
-            fetch='insert')
-        for m in meds:
-            qry("""INSERT INTO response_medicine_items
-                (response_id,medicine_name,quantity,is_available,
-                 unit_price,subtotal,substitute_name,substitute_price)
-                VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""",
-                (rid, m.get('name',''), m.get('quantity',''),
-                 1 if m.get('available') else 0,
-                 m.get('price',0), m.get('subtotal',0),
-                 m.get('substitute_name',''), m.get('substitute_price') or None),
-                fetch='insert')
-        qry("""UPDATE prescription_broadcasts
-               SET status='responded', responded_at=NOW()
-               WHERE prescription_id=%s AND pharmacy_id=%s""",
-            (rx_id, pid), fetch='exec')
+        # Make sure this pharmacy actually received this prescription
+        broadcast = qry("""
+            SELECT broadcast_id
+            FROM prescription_broadcasts
+            WHERE prescription_id = %s
+              AND pharmacy_id = %s
+        """, (prescription_id, pharmacy_id), fetch='one')
+
+        if not broadcast:
+            return jsonify({
+                'success': False,
+                'error': 'This prescription was not sent to your pharmacy'
+            }), 403
+
+
+        # Prevent duplicate responses
+        existing = qry("""
+            SELECT response_id
+            FROM pharmacy_responses
+            WHERE prescription_id = %s
+              AND pharmacy_id = %s
+        """, (prescription_id, pharmacy_id), fetch='one')
+
+        if existing:
+
+            return jsonify({
+                'success': False,
+                'error': 'You have already responded to this prescription'
+            }), 409
+
+
+        availability = data.get('availability')
+        if availability not in ('all', 'partial', 'none'):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid availability'
+            }), 400
+
+
+        total_price = data.get('total_price') or None
+        delivery_available = ( 1 if data.get('delivery_available') == '1' else 0 )
+        estimated_time = ( data.get('estimated_time_min') or None )
+        notes = data.get('notes', '').strip()
+
+        # Generate response ID
+        response_id = new_uuid()
+
+        # Insert overall response
+        qry("""
+            INSERT INTO pharmacy_responses
+            (
+                response_id,
+                prescription_id,
+                pharmacy_id,
+                availability,
+                total_price,
+                delivery_available,
+                estimated_time_min,
+                notes
+            )
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            response_id,
+            prescription_id,
+            pharmacy_id,
+            availability,
+            total_price,
+            delivery_available,
+            estimated_time,
+            notes
+        ), fetch='insert')
+
+        # Medicine arrays
+        names = data.getlist('medicine_name[]')
+        quantities = data.getlist('quantity[]')
+        available = data.getlist('is_available[]')
+        prices = data.getlist('unit_price[]')
+        substitutes = data.getlist('substitute_name[]')
+        substitute_prices = data.getlist('substitute_price[]')
+
+        # Insert medicine items
+        for i in range(len(names)):
+            medicine_name = names[i].strip()
+            if not medicine_name:
+                continue
+
+            quantity = (
+                quantities[i].strip()
+                if i < len(quantities)
+                else None
+            )
+            is_available = (
+                1
+                if i < len(available)
+                and available[i] == '1'
+                else 0
+            )
+            unit_price = (
+                prices[i]
+                if i < len(prices)
+                and prices[i].strip()
+                else None
+            )
+            substitute_name = (
+                substitutes[i].strip()
+                if i < len(substitutes)
+                and substitutes[i].strip()
+                else None
+            )
+            substitute_price = (
+                substitute_prices[i]
+                if i < len(substitute_prices)
+                and substitute_prices[i].strip()
+                else None
+            )
+            subtotal = None
+
+            # Calculate subtotal when possible
+            if unit_price and quantity:
+                try:
+                    import re
+                    match = re.search(
+                        r'\d+',
+                        quantity
+                    )
+                    if match:
+                        qty = int(match.group())
+                        subtotal = (
+                            float(unit_price) * qty
+                        )
+                except Exception:
+                    subtotal = None
+
+            qry("""
+                INSERT INTO response_medicine_items
+                (
+                    response_id,
+                    medicine_name,
+                    quantity,
+                    is_available,
+                    unit_price,
+                    subtotal,
+                    substitute_name,
+                    substitute_price
+                )
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                response_id,
+                medicine_name,
+                quantity,
+                is_available,
+                unit_price,
+                subtotal,
+                substitute_name,
+                substitute_price
+            ), fetch='insert')
+
+        # Mark broadcast as responded
+        qry("""
+            UPDATE prescription_broadcasts
+            SET
+                status = 'responded',
+                responded_at = CURRENT_TIMESTAMP
+            WHERE prescription_id = %s
+              AND pharmacy_id = %s
+        """, (
+            prescription_id,
+            pharmacy_id
+        ))
+
+        return jsonify({
+            'success': True,
+            'response_id': response_id,
+            'message': 'Response submitted successfully'
+        })
     except Exception as e:
-        return jsonify({'success':False,'error':str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)}), 500
 
-    return jsonify({'success':True,'response_id':rid,'availability':avail})
 
+@app.route('/api/pharmacy/requests', methods=['GET'])
+def pharmacy_requests():
+    pharmacy_id = session.get('pharmacy_id')
 
-# ══════════════════════════════════════════════════════════════════════════
-#  API: Dashboard — ratings
-# ══════════════════════════════════════════════════════════════════════════
-@app.route('/api/pharmacy/ratings')
-@pharmacy_required
-def api_pharmacy_ratings():
-    pid = session['pharmacy_id']
+    if not pharmacy_id:
+        return jsonify({
+            'success': False,
+            'error': 'Please login first'
+        }), 401
+
     try:
-        rows = qry("""SELECT r.*,o.patient_name FROM ratings r
-                      JOIN orders o ON o.order_id=r.order_id
-                      WHERE r.pharmacy_id=%s ORDER BY r.rated_at DESC LIMIT 50""", (pid,))
-        return jsonify({'success':True,'ratings':rows})
+        requests = qry("""
+            SELECT
+                p.prescription_id,
+                p.patient_name,
+                p.phone,
+                p.area,
+                p.notes,
+                p.status AS prescription_status,
+
+                pb.distance_km,
+                pb.status AS broadcast_status,
+                pb.sent_at,
+                pb.read_at,
+                pb.responded_at
+
+            FROM prescription_broadcasts pb
+
+            JOIN prescriptions p
+                ON p.prescription_id = pb.prescription_id
+
+            WHERE pb.pharmacy_id = %s
+
+            ORDER BY pb.sent_at DESC
+        """, (pharmacy_id,), fetch='all')
+
+        return jsonify({
+            'success': True,
+            'requests': requests or []
+        })
+
     except Exception as e:
-        return jsonify({'success':False,'error':str(e)}), 500
+        print("PHARMACY REQUESTS ERROR:", e)
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+
+@app.route('/pharmacy/request/<prescription_id>')
+def pharmacy_view_request(prescription_id):
+    pharmacy_id = session.get('pharmacy_id')
+    
+    if not pharmacy_id:
+        return redirect('/pharmacy/login')
+
+    try:
+        # TEST 1: Prescription + broadcast
+        prescription = qry("""
+            SELECT
+                p.prescription_id,
+                p.patient_id,
+                p.patient_name,
+                p.phone,
+                p.area,
+                p.city_id,
+                p.notes,
+                p.patient_lat,
+                p.patient_lng,
+                p.search_radius_km,
+                p.status,
+                p.expires_at,
+                p.created_at,
+                pb.distance_km,
+                pb.status AS broadcast_status,
+                pb.sent_at,
+                pb.read_at,
+                pb.responded_at
+            FROM prescriptions p
+            JOIN prescription_broadcasts pb
+                ON p.prescription_id = pb.prescription_id
+            WHERE p.prescription_id = %s
+              AND pb.pharmacy_id = %s
+        """, (prescription_id, pharmacy_id), fetch='one')
+
+        if not prescription:
+            return "Prescription not found", 404
+
+        # TEST 2: Images
+        images = qry("""
+            SELECT
+                image_id,
+                file_path,
+                file_name,
+                file_type,
+                file_size_kb,
+                sort_order,
+                uploaded_at
+            FROM prescription_images
+            WHERE prescription_id = %s
+            ORDER BY sort_order ASC
+        """, (prescription_id,), fetch='all')
+
+        # TEST 3: Mark read
+        qry("""
+            UPDATE prescription_broadcasts
+            SET status = CASE
+                WHEN status = 'sent' THEN 'read' ELSE status
+                END,
+                read_at = CASE
+                    WHEN read_at IS NULL THEN CURRENT_TIMESTAMP
+                    ELSE read_at
+                END
+            WHERE prescription_id = %s
+              AND pharmacy_id = %s
+        """, (prescription_id, pharmacy_id))
+
+        # TEST 4: Template
+        return render_template('pharmacy_view_request.html',
+                        prescription = prescription,
+                        images=images
+                    )
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
+@app.route('/pharmacy/orders/responded')
+def pharmacy_orders_responded():
+    pharmacy_id = session.get('pharmacy_id')
+
+    if not pharmacy_id:
+        return redirect('/pharmacy/login')
+
+    try:
+        orders = qry("""
+            SELECT o.order_id, o.prescription_id, o.patient_name,
+                o.patient_phone, o.delivery_address, o.total_amount,
+                o.payment_mode, o.payment_status, o.status,
+                o.placed_at, o.updated_at
+            FROM orders o
+            WHERE o.pharmacy_id = %s
+            ORDER BY o.placed_at DESC
+        """, (pharmacy_id,), fetch='all')
+
+        return render_template(
+            'pharmacy_orders_responded.html',
+            orders=orders
+        )
+    except Exception as e:
+        print("RESPONDED ORDERS ERROR:", e)
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/pharmacy/orders/completed')
+def pharmacy_orders_completed():
+    pharmacy_id = session.get('pharmacy_id')
+
+    if not pharmacy_id:
+        return redirect('/pharmacy/login')
+
+    try:
+        orders = qry("""
+            SELECT o.order_id, o.prescription_id, o.patient_name, o.patient_phone, 
+                o.delivery_address, o.total_amount, o.payment_mode, o.payment_status, 
+                o.status, o.placed_at, o.updated_at
+            FROM orders o
+            WHERE o.pharmacy_id = %s
+              AND o.status IN ('delivered', 'completed')
+            ORDER BY o.updated_at DESC
+        """, (pharmacy_id,), fetch='all')
+
+        return render_template(
+            'pharmacy_orders_completed.html',
+            orders=orders
+        )
+    except Exception as e:
+        print("COMPLETED ORDERS ERROR:", e)
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+    
 # ══════════════════════════════════════════════════════════════════════════
 #  API: Dashboard — update profile
 # ══════════════════════════════════════════════════════════════════════════
@@ -503,10 +1134,12 @@ def api_pharmacy_profile():
 # ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/pharmacies')
 def api_pharmacies():
-    lat    = request.args.get('lat',  type=float)
-    lng    = request.args.get('lng',  type=float)
-    radius = request.args.get('radius', 5.0, type=float)
-    q      = request.args.get('q','').lower().strip()
+    lat = float(request.args.get("lat", 21.1458))
+    lng = float(request.args.get("lng", 79.0882))
+    radius = float(request.args.get("radius", 3))
+
+    q = request.args.get('q','').lower().strip()
+
     if not lat or not lng:
         return jsonify({'success':False,'error':'lat and lng required'}), 400
 
@@ -515,7 +1148,11 @@ def api_pharmacies():
     try:
         rows = qry("SELECT * FROM pharmacies WHERE is_active=1 AND is_verified=1")
         for r in rows:
+            print(r["name"])
+            print(r["latitude"], r["longitude"])
             d = haversine(lat, lng, float(r['latitude']), float(r['longitude']))
+            print("Distance:", d)
+
             if d <= radius:
                 registered.append({
                     'osm_id':None, 'db_id':r['pharmacy_id'],
@@ -525,45 +1162,61 @@ def api_pharmacies():
                     'dist_km':d,
                     'open':bool(r.get('is_open_now')),
                     'hours':f"{r.get('opening_time','')} – {r.get('closing_time','')}",
-                    'rating':float(r.get('rating') or 0),
                     'logo':r.get('logo_path',''),
                     'delivery':bool(r.get('accepts_delivery')),
                     'source':'medrelay',
                 })
     except Exception as e:
-        app.logger.warning(f'DB pharmacies: {e}')
+        app.logger.warning(f'DB pharmacies Error: {e}')
 
+    
     # OSM pharmacies
     ck = f'{round(lat,4)},{round(lng,4)},{radius}'
     cached = _ov_cache.get(ck)
     osm = []
     if cached and (time.time()-cached[0]) < CACHE_TTL:
+        print("USING CACHED OSM DATA")
         osm = cached[1]
     else:
-        oq = (f'[out:json][timeout:25];'
-              f'(node[amenity=pharmacy](around:{int(radius*1000)},{lat},{lng});'
-              f'way[amenity=pharmacy](around:{int(radius*1000)},{lat},{lng}););'
-              f'out center tags;')
+        oq = f"""
+            [out:json][timeout:25];
+            (
+            node["amenity"="pharmacy"](around:{int(radius*1000)},{lat},{lng});
+            way["amenity"="pharmacy"](around:{int(radius*1000)},{lat},{lng});
+            relation["amenity"="pharmacy"](around:{int(radius*1000)},{lat},{lng});
+            );
+            out center tags;
+            """
         for mirror in OVERPASS:
+            print("Trying Overpass:", mirror)
             try:
                 r = http_req.post(mirror, data={'data':oq},
-                    headers={'Content-Type':'application/x-www-form-urlencoded'}, timeout=18)
+                    headers={'Content-Type':'application/x-www-form-urlencoded'}, timeout=30)
+                
                 if r.status_code == 200:
-                    osm = norm_overpass(r.json().get('elements',[]), lat, lng)
+                    result = r.json()
+                    elements = result.get('elements', [])
+                    osm = norm_overpass(elements, lat, lng)
                     _ov_cache[ck] = (time.time(), osm)
                     break
-            except Exception as ex:
-                app.logger.warning(f'Overpass: {ex}')
+                else:
+                    print("OVERPASS ERROR:")
+                    print(r.text[:1000])
 
+            except Exception as ex:
+                print("OVERPASS EXCEPTION:", repr(ex))
+
+        
     # Merge — registered names win
     reg_names = {p['name'].lower() for p in registered}
     merged = sorted(registered + [p for p in osm if p['name'].lower() not in reg_names],
                     key=lambda x: x['dist_km'])
-    if q:
-        merged = [p for p in merged
+    
+    merged = [p for p in merged
                   if q in p['name'].lower()
                   or q in p['address'].lower()
                   or q in p['phone']]
+        
     return jsonify({'success':True,'count':len(merged),'pharmacies':merged})
 
 
@@ -571,7 +1224,10 @@ def api_pharmacies():
 #  API: Prescriptions
 # ══════════════════════════════════════════════════════════════════════════
 @app.route('/api/prescriptions', methods=['POST'])
+@customer_required
 def api_upload():
+    customer_id = session['customer_id']
+
     name   = request.form.get('patientName','').strip()
     phone  = request.form.get('phone','').strip()
     area   = request.form.get('area','').strip()
@@ -596,13 +1252,15 @@ def api_upload():
     tid = track_id()
     notified = 0
     try:
+        # patient_id ties this prescription/order to the logged-in customer,
+        # so later we can filter "my orders" / "my responses" by it.
         qry("""INSERT INTO prescriptions
-            (prescription_id,patient_name,phone,area,notes,
+            (prescription_id,patient_id,patient_name,phone,area,notes,
              patient_lat,patient_lng,search_radius_km,status,
              notified_count,expires_at)
-            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'broadcasted',0,
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,'broadcasted',0,
                    DATE_ADD(NOW(),INTERVAL 48 HOUR))""",
-            (tid,name,phone,area,notes,lat or None,lng or None,radius), fetch='insert')
+            (tid,customer_id,name,phone,area,notes,lat or None,lng or None,radius), fetch='insert')
 
         for i,fp in enumerate(images,1):
             fn=fp.split('/')[-1]; ext=fn.rsplit('.',1)[-1].lower()
@@ -619,18 +1277,43 @@ def api_upload():
                             (tid,ph['pharmacy_id'],d), fetch='insert')
                         notified += 1
                     except: pass
-            qry("UPDATE prescriptions SET notified_count=%s WHERE prescription_id=%s",
-                (notified,tid), fetch='exec')
+            qry("UPDATE prescriptions SET notified_count=%s WHERE prescription_id=%s",(notified,tid), fetch='exec')
     except Exception as e:
         app.logger.error(e)
 
     return jsonify({'success':True,'prescription_id':tid,'notified_count':notified,'images':images})
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  API: Customer's own prescriptions / orders  (NEW)
+# ══════════════════════════════════════════════════════════════════════════
+@app.route('/api/customer/prescriptions')
+@customer_required
+def api_customer_prescriptions():
+    cid = session['customer_id']
+    try:
+        rows = qry("""
+            SELECT prescription_id, patient_name, area, status,
+                   notified_count, created_at, expires_at
+            FROM prescriptions
+            WHERE patient_id = %s
+            ORDER BY created_at DESC
+        """, (cid,), fetch='all')
+        return jsonify({'success': True, 'prescriptions': rows or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/prescriptions/<pid>')
+@customer_required
 def api_get_prescription(pid):
+    cid = session['customer_id']
     try:
         rx = qry('SELECT * FROM prescriptions WHERE prescription_id=%s',(pid,),fetch='one')
         if not rx: return jsonify({'success':False,'error':'Not found'}),404
+        # Ownership check — a customer can only view their own prescription.
+        if rx.get('patient_id') != cid:
+            return jsonify({'success':False,'error':'Not authorized to view this prescription'}), 403
         imgs  = qry('SELECT * FROM prescription_images WHERE prescription_id=%s ORDER BY sort_order',(pid,))
         resps = qry('SELECT * FROM pharmacy_responses WHERE prescription_id=%s ORDER BY responded_at',(pid,))
         for r in resps:
@@ -640,8 +1323,18 @@ def api_get_prescription(pid):
         return jsonify({'success':False,'error':str(e)}),500
 
 @app.route('/api/responses/<pid>')
+@customer_required
 def api_get_responses(pid):
+    cid = session['customer_id']
     try:
+        rx = qry('SELECT patient_id FROM prescriptions WHERE prescription_id=%s', (pid,), fetch='one')
+        if not rx:
+            return jsonify({'success': False, 'error': 'Not found'}), 404
+        # Ownership check — only the customer who submitted this prescription
+        # can see the pharmacy responses to it.
+        if rx.get('patient_id') != cid:
+            return jsonify({'success': False, 'error': 'Not authorized to view these responses'}), 403
+
         resps = qry('SELECT * FROM pharmacy_responses WHERE prescription_id=%s ORDER BY total_price',(pid,))
         for r in resps:
             r['medicines'] = qry('SELECT * FROM response_medicine_items WHERE response_id=%s',(r['response_id'],))
@@ -649,281 +1342,100 @@ def api_get_responses(pid):
     except Exception as e:
         return jsonify({'success':False,'error':str(e)}),500
 
+    
+@app.route('/pharmacy/request/<prescription_id>/respond')
+def pharmacy_respond_page(prescription_id):
+    pharmacy_id = session.get('pharmacy_id')
+
+    if not pharmacy_id:
+        return redirect('/pharmacy/login')
+    try:
+        request_data = qry("""
+            SELECT p.prescription_id, pb.distance_km, pb.status, p.patient_name, p.phone,
+                p.area, p.notes, p.patient_lat, p.patient_lng
+            FROM prescription_broadcasts pb
+            JOIN prescriptions p
+                ON p.prescription_id = pb.prescription_id
+            WHERE p.prescription_id = %s
+            AND pb.pharmacy_id = %s
+        """, (prescription_id, pharmacy_id), fetch='one')
+
+        if not request_data:
+            return "Prescription not found or not sent to the Pharmacy", 404
+
+        images = qry("""
+                SELECT
+                    image_id,
+                    file_path,
+                    file_name,
+                    file_type
+                FROM prescription_images
+                WHERE prescription_id = %s
+                ORDER BY sort_order, uploaded_at
+            """, (prescription_id,), fetch='all')
+
+        return render_template(
+                'pharmacy_respond.html',
+                request_data = request_data,
+                images=images
+            )
+
+    except Exception as e:
+        print("RESPOND PAGE ERROR:", e)
+        return "Internal Server Error", 500
+
+
+@app.route('/pharmacy/profile')
+def pharmacy_profile():
+    pharmacy_id = session.get('pharmacy_id')
+
+    if not pharmacy_id:
+        return redirect('/pharmacy/login')
+
+    try:
+        pharmacy = qry("""
+            SELECT
+                pharmacy_id,
+                name,
+                phone,
+                email,
+                address_line,
+                area,
+                pincode,
+                drug_license_no,
+                gst_number,
+                proprietor_name,
+                latitude,
+                longitude,
+                accepts_delivery,
+                delivery_radius_km,
+                opening_time,
+                closing_time,
+                is_active,
+                is_verified
+            FROM pharmacies
+            WHERE pharmacy_id = %s
+        """, (pharmacy_id,), fetch='one')
+
+        if not pharmacy:
+            session.clear()
+            return redirect('/pharmacy/login')
+
+        return render_template(
+            'pharmacy_profile.html',
+            pharmacy=pharmacy
+        )
+
+    except Exception as e:
+
+        print("PHARMACY PROFILE ERROR:", e)
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# print(f"Password: {hash_pw('Wellness@123')}")
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-    
-    
-    
-
-    
-# import os, uuid, json
-# from datetime import datetime
-# from flask import Flask, request, jsonify, send_from_directory, render_template
-# from flask_cors import CORS
-# from werkzeug.utils import secure_filename
-
-# app = Flask(__name__, static_folder="static", template_folder="templates")
-# CORS(app)
-
-# # ── Config ──────────────────────────────────────────
-# UPLOAD_FOLDER   = os.path.join(os.path.dirname(__file__), "uploads")
-# ALLOWED_EXT     = {"png", "jpg", "jpeg", "webp", "pdf"}
-# MAX_CONTENT_LEN = 10 * 1024 * 1024   # 10 MB
-
-# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-# app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LEN
-
-# # ── In-memory "database" (swap for SQLite/Postgres) ─
-# prescriptions: dict = {}   # id → prescription dict
-# responses:     dict = {}   # prescription_id → [response, ...]
-
-# # ── Static pharmacy data (Nagpur) ───────────────────
-# PHARMACIES = [
-#     {"id":"ph1","name":"LifeCare Pharmacy",    "address":"17 Civil Lines, Nagpur",     "phone":"0712-244-5678","lat":21.1458,"lng":79.0882,"open":True, "rating":4.8,"dist_km":1.2},
-#     {"id":"ph2","name":"Apollo Pharmacy",      "address":"Dharampeth, Nagpur",          "phone":"0712-255-9900","lat":21.1536,"lng":79.0775,"open":True, "rating":4.6,"dist_km":2.8},
-#     {"id":"ph3","name":"MedPlus Stores",       "address":"Sitabuldi, Nagpur",           "phone":"0712-266-1122","lat":21.1418,"lng":79.0760,"open":False,"rating":4.3,"dist_km":3.5},
-#     {"id":"ph4","name":"Wellness Pharmacy",    "address":"Ramdaspeth, Nagpur",          "phone":"0712-277-3344","lat":21.1490,"lng":79.0840,"open":True, "rating":4.7,"dist_km":1.8},
-#     {"id":"ph5","name":"Jan Aushadhi Kendra",  "address":"Itwari, Nagpur",              "phone":"0712-288-5566","lat":21.1582,"lng":79.0912,"open":True, "rating":4.1,"dist_km":4.2},
-#     {"id":"ph6","name":"Sahyadri Pharma",      "address":"Sadar, Nagpur",               "phone":"0712-299-7788","lat":21.1430,"lng":79.0980,"open":False,"rating":4.5,"dist_km":3.0},
-#     {"id":"ph7","name":"NetMeds Store",        "address":"Mahal, Nagpur",               "phone":"0712-300-9900","lat":21.1500,"lng":79.0700,"open":True, "rating":4.2,"dist_km":5.1},
-#     {"id":"ph8","name":"Dr. Reddy's Pharma",   "address":"Wardhaman Nagar, Nagpur",     "phone":"0712-311-2233","lat":21.1610,"lng":79.0850,"open":True, "rating":4.4,"dist_km":4.8},
-# ]
-
-# # ── Helpers ─────────────────────────────────────────
-# def allowed_file(filename: str) -> bool:
-#     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
-
-# def make_track_id() -> str:
-#     date_str = datetime.now().strftime("%Y%m%d")
-#     short    = str(uuid.uuid4())[:4].upper()
-#     return f"MR-{date_str}-{short}"
-
-# def haversine(lat1, lng1, lat2, lng2) -> float:
-#     """Return distance in km between two lat/lng points."""
-#     from math import radians, sin, cos, sqrt, atan2
-#     R = 6371
-#     dlat = radians(lat2 - lat1)
-#     dlng = radians(lng2 - lng1)
-#     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng/2)**2
-#     return R * 2 * atan2(sqrt(a), sqrt(1 - a))
-
-# # ════════════════════════════════════════════════════
-# #  PAGE ROUTES  (serve HTML templates)
-# # ════════════════════════════════════════════════════
-# @app.route("/")
-# def index():
-#     return render_template("index.html")
-
-# @app.route("/upload")
-# def upload_page():
-#     return render_template("upload.html")
-
-# @app.route("/map")
-# def map_page():
-#     return render_template("map.html")
-
-# @app.route("/responses")
-# def responses_page():
-#     return render_template("responses.html")
-
-# # ── Serve uploaded prescription images ──────────────
-# @app.route("/uploads/<filename>")
-# def uploaded_file(filename):
-#     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
-# # ════════════════════════════════════════════════════
-# #  API — PHARMACIES
-# # ════════════════════════════════════════════════════
-# @app.route("/api/pharmacies", methods=["GET"])
-# def get_pharmacies():
-#     """
-#     GET /api/pharmacies
-#     Optional query params: lat, lng, radius (km, default 10)
-#     Returns list of pharmacies sorted by distance.
-#     """
-#     lat    = request.args.get("lat",    type=float)
-#     lng    = request.args.get("lng",    type=float)
-#     radius = request.args.get("radius", type=float, default=10.0)
-
-#     result = []
-#     for p in PHARMACIES:
-#         entry = dict(p)
-#         if lat is not None and lng is not None:
-#             entry["dist_km"] = round(haversine(lat, lng, p["lat"], p["lng"]), 2)
-#         if entry["dist_km"] <= radius:
-#             result.append(entry)
-
-#     result.sort(key=lambda x: x["dist_km"])
-#     return jsonify({"success": True, "count": len(result), "pharmacies": result})
-
-# # ════════════════════════════════════════════════════
-# #  API — PRESCRIPTIONS
-# # ════════════════════════════════════════════════════
-# @app.route("/api/prescriptions", methods=["POST"])
-# def upload_prescription():
-#     """
-#     POST /api/prescriptions
-#     Form fields: patient_name, phone, area, city, notes, radius
-#     Files:       images[]
-#     Returns:     { success, prescription_id, notified_count, prescription }
-#     """
-#     patient_name = request.form.get("patient_name", "").strip()
-#     phone        = request.form.get("phone",        "").strip()
-#     area         = request.form.get("area",         "").strip()
-#     city         = request.form.get("city",         "").strip()
-#     notes        = request.form.get("notes",        "").strip()
-#     radius       = float(request.form.get("radius", 5))
-#     lat          = request.form.get("lat",   type=float)
-#     lng          = request.form.get("lng",   type=float)
-
-#     # Validate
-#     errors = []
-#     if not patient_name: errors.append("patient_name is required")
-#     if not phone:        errors.append("phone is required")
-#     if not area:         errors.append("area is required")
-#     if errors:
-#         return jsonify({"success": False, "errors": errors}), 400
-
-#     # Save uploaded files
-#     files = request.files.getlist("images")
-#     saved_paths = []
-#     for f in files:
-#         if f and f.filename and allowed_file(f.filename):
-#             filename = f"{uuid.uuid4().hex}_{secure_filename(f.filename)}"
-#             f.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-#             saved_paths.append(f"/uploads/{filename}")
-
-#     if not saved_paths:
-#         return jsonify({"success": False, "errors": ["At least one prescription image is required"]}), 400
-
-#     # Build record
-#     presc_id = make_track_id()
-#     nearby   = [p for p in PHARMACIES if p["dist_km"] <= radius]
-
-#     prescription = {
-#         "id":           presc_id,
-#         "patient_name": patient_name,
-#         "phone":        phone,
-#         "area":         area,
-#         "city":         city,
-#         "notes":        notes,
-#         "images":       saved_paths,
-#         "radius_km":    radius,
-#         "lat":          lat,
-#         "lng":          lng,
-#         "status":       "pending",
-#         "created_at":   datetime.now().isoformat(),
-#         "notified_pharmacies": [p["id"] for p in nearby],
-#     }
-
-#     prescriptions[presc_id] = prescription
-#     responses[presc_id]     = []
-
-#     # In production: send WhatsApp / SMS / email to each pharmacy here
-#     # notify_pharmacies(nearby, prescription)
-
-#     return jsonify({
-#         "success":         True,
-#         "prescription_id": presc_id,
-#         "notified_count":  len(nearby),
-#         "prescription":    prescription,
-#     }), 201
-
-
-# @app.route("/api/prescriptions/<presc_id>", methods=["GET"])
-# def get_prescription(presc_id):
-#     """GET /api/prescriptions/<id>  — fetch prescription + its responses."""
-#     p = prescriptions.get(presc_id)
-#     if not p:
-#         return jsonify({"success": False, "error": "Prescription not found"}), 404
-#     return jsonify({
-#         "success":      True,
-#         "prescription": p,
-#         "responses":    responses.get(presc_id, []),
-#     })
-
-# # ════════════════════════════════════════════════════
-# #  API — PHARMACY RESPONSES  (pharmacist-side)
-# # ════════════════════════════════════════════════════
-# @app.route("/api/responses", methods=["POST"])
-# def submit_response():
-#     """
-#     POST /api/responses
-#     JSON body:
-#     {
-#       "prescription_id": "MR-...",
-#       "pharmacy_id":     "ph1",
-#       "medicines": [
-#         { "name": "Metformin 500mg x30", "available": true,  "price": 142 },
-#         { "name": "Atorvastatin 10mg x30","available": false, "price": 0  }
-#       ],
-#       "total_price": 142,
-#       "notes": "Delivery available",
-#       "delivery_available": true
-#     }
-#     """
-#     data = request.get_json(silent=True) or {}
-
-#     presc_id    = data.get("prescription_id")
-#     pharmacy_id = data.get("pharmacy_id")
-#     medicines   = data.get("medicines", [])
-
-#     if not presc_id or not pharmacy_id or not medicines:
-#         return jsonify({"success": False, "error": "Missing required fields"}), 400
-
-#     if presc_id not in prescriptions:
-#         return jsonify({"success": False, "error": "Prescription not found"}), 404
-
-#     pharmacy = next((p for p in PHARMACIES if p["id"] == pharmacy_id), None)
-#     if not pharmacy:
-#         return jsonify({"success": False, "error": "Pharmacy not found"}), 404
-
-#     all_avail  = all(m.get("available") for m in medicines)
-#     any_avail  = any(m.get("available") for m in medicines)
-#     avail_str  = "all" if all_avail else ("partial" if any_avail else "none")
-
-#     response_obj = {
-#         "id":                str(uuid.uuid4()),
-#         "prescription_id":   presc_id,
-#         "pharmacy_id":       pharmacy_id,
-#         "pharmacy_name":     pharmacy["name"],
-#         "pharmacy_phone":    pharmacy["phone"],
-#         "pharmacy_dist":     pharmacy["dist_km"],
-#         "medicines":         medicines,
-#         "total_price":       data.get("total_price", 0),
-#         "notes":             data.get("notes", ""),
-#         "delivery_available":data.get("delivery_available", False),
-#         "availability":      avail_str,
-#         "created_at":        datetime.now().isoformat(),
-#     }
-
-#     responses[presc_id].append(response_obj)
-#     return jsonify({"success": True, "response": response_obj}), 201
-
-
-# @app.route("/api/responses/<presc_id>", methods=["GET"])
-# def get_responses(presc_id):
-#     """GET /api/responses/<prescription_id>  — all pharmacy replies."""
-#     if presc_id not in prescriptions:
-#         return jsonify({"success": False, "error": "Prescription not found"}), 404
-#     return jsonify({
-#         "success":   True,
-#         "count":     len(responses.get(presc_id, [])),
-#         "responses": responses.get(presc_id, []),
-#     })
-
-# # ════════════════════════════════════════════════════
-# #  HEALTH CHECK
-# # ════════════════════════════════════════════════════
-# @app.route("/api/health")
-# def health():
-#     return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
-
-# # ════════════════════════════════════════════════════
-# if __name__ == "__main__":
-#     print("\n  ╔═══════════════════════════════╗")
-#     print("  ║  MedRelay Flask Server         ║")
-#     print("  ║  http://localhost:5000          ║")
-#     print("  ╚═══════════════════════════════╝\n")
-#     app.run(debug=True, port=5000)

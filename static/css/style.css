@@ -1,6 +1,5 @@
 /* ═══════════════════════════════════════════════
    MedRelay  —  Global Stylesheet
-   static/css/style.css
    ═══════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
@@ -243,7 +242,7 @@ button, input, select, textarea { font-family: var(--sans); }
 .sidebar-meta         { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--muted); }
 .sidebar-meta strong  { color: var(--teal-d); }
 
-.pharm-item           { padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; gap: 12px; transition: background .18s; }
+.pharm-item           { padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items:flex-start; gap: 15px; transition: background .18s; }
 .pharm-item:hover,
 .pharm-item.selected  { background: var(--teal-ll); }
 .pharm-item.selected  { border-left: 3px solid var(--teal); }
@@ -339,4 +338,9 @@ button, input, select, textarea { font-family: var(--sans); }
   .footer { padding: 40px 20px 24px; }
   .footer-grid { grid-template-columns: 1fr; }
   .nav { padding: 0 16px; }
+}
+
+.submit-btn{
+width:100%;
+justify-content:center;
 }

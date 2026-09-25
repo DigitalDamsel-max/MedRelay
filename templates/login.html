@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — MedRelay</title>
+<style>
+  :root {
+    --cream: #faf7f0;
+    --white: #ffffff;
+    --navy: #14213d;
+    --muted: #6b7280;
+    --border: #e6e2d8;
+    --teal: #0d9e8a;
+    --teal-d: #0b7d6c;
+    --teal-ll: #e5f5f2;
+    --danger: #dc2626;
+    --danger-bg: #fdecec;
+    --shadow: 0 2px 10px rgba(20, 33, 61, 0.06);
+    --serif: 'Georgia', 'Times New Roman', serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+  }
+
+  /* ================= NAV ================= */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-mark {
+    width: 34px;
+    height: 34px;
+    background: var(--teal);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .nav-logo-text {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: bold;
+    color: var(--navy);
+  }
+
+  .nav-logo-text span {
+    color: var(--teal);
+    font-style: italic;
+  }
+
+  .nav-links {
+    display: flex;
+    list-style: none;
+    gap: 28px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    color: var(--navy);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .nav-links a:hover {
+    color: var(--teal-d);
+  }
+
+  .nav-cta {
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .nav-cta:hover {
+    background: #0d1a30;
+  }
+
+  .nav-cta.is-logout {
+    background: transparent;
+    color: var(--danger);
+    border: 1.5px solid var(--danger);
+  }
+
+  .nav-cta.is-logout:hover {
+    background: var(--danger-bg);
+  }
+
+  .nav-burger {
+    display: none;
+  }
+
+  /* ================= PAGE ================= */
+  .page {
+    display: flex;
+    justify-content: center;
+    padding: 64px 24px 90px;
+  }
+
+  .auth-container {
+    background: var(--white);
+    width: 100%;
+    max-width: 420px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 40px 36px;
+  }
+
+  .auth-container h2 {
+    font-family: var(--serif);
+    font-size: 27px;
+    color: var(--navy);
+    margin: 0 0 26px;
+    text-align: center;
+  }
+
+  /* ================= ROLE TOGGLE ================= */
+  .role-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 26px;
+  }
+
+  .role-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px;
+    border-radius: 7px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .role-btn.active {
+    background: var(--white);
+    color: var(--navy);
+    box-shadow: 0 1px 4px rgba(20, 33, 61, 0.1);
+  }
+
+  .role-btn:not(.active):hover {
+    color: var(--navy);
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 7px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    background: var(--cream);
+    color: var(--navy);
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--teal);
+    background: var(--white);
+  }
+
+  .btn {
+    border: none;
+    border-radius: 9px;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--teal);
+    color: var(--white);
+    margin-top: 6px;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: var(--teal-d);
+  }
+
+  #loginError {
+    color: var(--danger);
+    background: var(--danger-bg);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 14px;
+    text-align: center;
+    min-height: 0;
+  }
+
+  #loginError:empty {
+    display: none;
+  }
+
+  .auth-container p {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 22px;
+  }
+
+  .auth-container p a {
+    color: var(--teal-d);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .auth-container p a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark">💊</div>
+    <div class="nav-logo-text">Med<span>Relay</span></div>
+  </a>
+</nav>
+
+<div class="page">
+
+    <div class="auth-container">
+
+        <h2 id="loginTitle"> Login </h2>
+
+        <!-- ROLE TOGGLE: same form is used for both, only the target endpoint/redirect changes -->
+        <div class="role-toggle">
+            <button type="button" class="role-btn active" id="pharmacyTab">
+                Pharmacy
+            </button>
+            <button type="button" class="role-btn" id="customerTab">
+                Customer
+            </button>
+        </div>
+
+        <form id="loginForm">
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                Login
+            </button>
+
+        </form>
+
+        <div id="loginError"></div>
+
+        <p>
+            Don't have an account?
+            <a href="/pharmacy/register" id="registerLink">Register</a>
+        </p>
+
+    </div>
+</div>
+
+<script>
+
+/* =====================================================
+   ROLE TOGGLE (Pharmacy / Customer)
+===================================================== */
+let currentRole = 'pharmacy';
+
+function setRole(role) {
+    currentRole = role;
+
+    document.getElementById('pharmacyTab').classList.toggle('active', role === 'pharmacy');
+    document.getElementById('customerTab').classList.toggle('active', role === 'customer');
+
+    document.getElementById('loginTitle').textContent =
+        role === 'pharmacy' ? ' Login ' : 'Customer Login';
+
+    document.getElementById('registerLink').href =
+        role === 'pharmacy' ? '/pharmacy/register' : '/customer/register';
+
+    document.getElementById('loginError').textContent = '';
+}
+
+document.getElementById('pharmacyTab').addEventListener('click', function () {
+    setRole('pharmacy');
+});
+
+document.getElementById('customerTab').addEventListener('click', function () {
+    setRole('customer');
+});
+
+/* Allow linking straight to the customer tab, e.g. /pharmacy/login?role=customer */
+const initialParams = new URLSearchParams(window.location.search);
+if (initialParams.get('role') === 'customer') {
+    setRole('customer');
+}
+
+/* =====================================================
+   LOGIN SUBMIT
+===================================================== */
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    const endpoint = currentRole === 'pharmacy'
+        ? '/api/pharmacy/login'
+        : '/api/customer/login';
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                email: email,
+                password: password
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            if (currentRole === 'pharmacy') {
+                window.location.href = '/pharmacy/dashboard';
+
+            } else {
+                localStorage.setItem('medrelay_customer_logged_in', '1');
+                window.location.href = '/';
+            }
+
+        } else {
+            document.getElementById('loginError').textContent =
+                result.error || 'Login failed';
+        }
+
+    } catch (error) {
+        document.getElementById('loginError').textContent =
+            'Something went wrong. Please try again.';
+
+        console.error(error);
+    }
+});
+
+/* =====================================================
+   SHARED NAV AUTH STATE
+===================================================== */
+function isCustomerLoggedIn() {
+    return localStorage.getItem('medrelay_customer_logged_in') === '1';
+}
+
+async function customerLogout() {
+    try {
+        await fetch('/api/customer/logout', { method: 'POST' });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        localStorage.removeItem('medrelay_customer_logged_in');
+        window.location.href = '/';
+    }
+}
+
+function updateNavForAuth() {
+    const loginBtn = document.getElementById('navLoginBtn');
+
+    if (isCustomerLoggedIn()) {
+        loginBtn.textContent = 'Logout';
+        loginBtn.classList.add('is-logout');
+        loginBtn.onclick = customerLogout;
+    } else {
+        loginBtn.textContent = 'Login';
+        loginBtn.classList.remove('is-logout');
+        loginBtn.onclick = function () {
+            location.href = '/pharmacy/login';
+        };
+    }
+}
+
+document.getElementById('uploadRxLink').addEventListener('click', function (e) {
+    if (!isCustomerLoggedIn()) {
+        e.preventDefault();
+        window.location.href = '/pharmacy/login?role=customer';
+    }
+});
+
+updateNavForAuth();
+
+</script>
+</body>
+</html>

@@ -20,7 +20,16 @@
     <li><a href="{{ url_for('map_page') }}">Find Pharmacy</a></li>
     <li><a href="{{ url_for('responses_page') }}">Responses</a></li>
   </ul>
-  <button class="nav-cta" data-href="{{ url_for('upload_page') }}" onclick="location.href=this.dataset.href;">Upload Prescription</button>
+
+  {% if session.get('customer_id') %}
+    <span style="margin-right:12px;font-size:14px;color:var(--muted);align-self:center">
+      Hi, {{ session.get('customer_name','').split(' ')[0] }}
+    </span>
+    <button class="nav-cta" data-href="{{ url_for('customer_logout_page') }}" onclick="location.href=this.dataset.href;">Logout</button>
+  {% else %}
+    <button class="nav-cta" data-href="{{ url_for('customer_login_page') }}" onclick="location.href=this.dataset.href;">Login</button>
+  {% endif %}
+
   <button class="nav-hamburger"><span></span><span></span><span></span></button>
 </nav>
 
@@ -38,12 +47,6 @@
     <div class="hero-actions">
       <a href="{{ url_for('upload_page') }}" class="btn btn-primary">📄 Upload Prescription</a>
       <a href="{{ url_for('map_page') }}"    class="btn btn-outline">🗺️ Find Pharmacies Nearby</a>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="stat-n">340+</div><div class="stat-l">Partner pharmacies</div></div>
-      <div class="hero-stat"><div class="stat-n">&lt;8 min</div><div class="stat-l">Avg. reply time</div></div>
-      <div class="hero-stat"><div class="stat-n">98%</div><div class="stat-l">Medicine found rate</div></div>
-      <div class="hero-stat"><div class="stat-n">Free</div><div class="stat-l">Always for patients</div></div>
     </div>
   </section>
 
@@ -92,7 +95,7 @@
           <div class="section-title">See every pharmacy<br>near you on the map</div>
           <p class="section-sub" style="max-width:100%">
             Browse licensed pharmacies with real-time open/closed status, phone numbers,
-            ratings, and distance from you — all on an interactive map.
+            and distance from you — all on an interactive map.
           </p>
           <div style="margin-top:32px;display:flex;gap:12px;flex-wrap:wrap">
             <a href="{{ url_for('map_page') }}"    class="btn btn-navy">🗺️ Open Map</a>
@@ -104,7 +107,7 @@
           <div style="background:linear-gradient(135deg,#e8f0ea 0%,#c5d9c5 100%);height:240px;position:relative;display:flex;align-items:center;justify-content:center">
             <div style="text-align:center"><div style="font-size:46px;margin-bottom:8px">🗺️</div>
             <div style="font-size:14px;font-weight:700;color:var(--navy)">Interactive Map</div>
-            <div style="font-size:12px;color:var(--muted)">8 pharmacies in Nagpur</div></div>
+            <div style="font-size:12px;color:var(--muted)">Pharmacies in Nagpur</div></div>
             <div style="position:absolute;top:38px;left:58px;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">💊</div>
             <div style="position:absolute;top:75px;right:75px;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">💊</div>
             <div style="position:absolute;bottom:48px;left:115px;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">💊</div>
@@ -137,7 +140,6 @@
           ('🗺️','Location-based','Only verified pharmacies within your chosen radius are notified.'),
           ('✅','Verified Partners','Every pharmacy is drug-license verified and GST-registered.'),
           ('📋','Full History','Track all your prescriptions, orders, and responses in one place.'),
-          ('🛵','Home Delivery','Many network pharmacies offer same-day home delivery.'),
         ] %}
         {% for icon, title, desc in features %}
         <div class="fade-up" style="padding:22px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04)">
@@ -175,7 +177,7 @@
       <div class="footer-col">
         <h4>For Pharmacies</h4>
         <a href="#">Partner with us</a>
-        <a href="#">Pharmacist Login</a>
+        <a href="#"> Login </a>
         <a href="#">API Docs</a>
       </div>
       <div class="footer-col">
@@ -198,8 +200,3 @@
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
-
-
-
-
-
