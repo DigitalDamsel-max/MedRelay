@@ -11,6 +11,10 @@
       "src": "/(.*)",
       "dest": "app.py"
     }
-  ]
+  ],
+  "functions": {
+    "app.py": {
+      "excludeFiles": "{.venv/**,env/**,venv/**,node_modules/**,*.db,*.sqlite,static/uploads/**}"
+    }
+  }
 }
-
