@@ -156,9 +156,6 @@ def norm_overpass(elements, ulat, ulng):
 #  PAGE ROUTES
 @app.route('/')
 def index():
-    # customer_id / customer_name are already available inside index.html
-    # via Flask's automatic `session` template global, but we also pass
-    # them explicitly for clarity / in case you template-inherit elsewhere.
     return render_template(
         'index.html',
         customer_logged_in='customer_id' in session,
@@ -577,6 +574,135 @@ def pharmacy_dashboard():
         pharmacy=pharmacy
     )
 
+# ============================================================
+# AI FEATURE 1: Medicine Demand Insights
+# ============================================================
+
+@app.route('/pharmacy/ai/demand')
+@pharmacy_required
+def pharmacy_demand_forecast():
+    pharmacy_id = session['pharmacy_id']
+
+    try:
+        # Get medicine quantities from delivered orders
+        # belonging to the logged-in pharmacy.
+        demand_rows = qry("""
+            SELECT
+                oi.medicine_name,
+                DATE_FORMAT(DATE(o.placed_at), '%Y-%m-%d')
+                    AS demand_date,
+                SUM(oi.quantity) AS total_quantity
+            FROM orders AS o
+            INNER JOIN order_items AS oi
+                ON oi.order_id = o.order_id
+            WHERE o.pharmacy_id = %s
+              AND o.status = 'delivered'
+              AND o.placed_at >=
+                  DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+            GROUP BY
+                oi.medicine_name,
+                DATE(o.placed_at)
+            ORDER BY
+                demand_date DESC,
+                oi.medicine_name
+        """, (pharmacy_id,), fetch='all')
+
+        # Count delivered orders in the same period.
+        order_stats = qry("""
+            SELECT
+                COUNT(*) AS completed_orders,
+                MIN(DATE(placed_at)) AS first_order_date,
+                MAX(DATE(placed_at)) AS last_order_date
+            FROM orders
+            WHERE pharmacy_id = %s
+              AND status = 'delivered'
+              AND placed_at >=
+                  DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+        """, (pharmacy_id,), fetch='one')
+
+        # Summarize historical demand for each medicine.
+        summaries = {}
+
+        for row in demand_rows:
+            medicine = row['medicine_name']
+
+            if medicine not in summaries:
+                summaries[medicine] = {
+                    'medicine_name': medicine,
+                    'total_quantity': 0,
+                    'active_days': 0,
+                    'daily_quantities': {}
+                }
+
+            quantity = int(row['total_quantity'])
+            demand_date = row['demand_date']
+
+            summaries[medicine]['total_quantity'] += quantity
+            summaries[medicine]['active_days'] += 1
+            summaries[medicine]['daily_quantities'][
+                demand_date
+            ] = quantity
+
+        # Build the data passed to the HTML page.
+        medicines = []
+
+        for item in summaries.values():
+            active_days = item['active_days']
+            total_quantity = item['total_quantity']
+
+            medicines.append({
+                'medicine_name': item['medicine_name'],
+                'total_quantity': total_quantity,
+                'active_days': active_days,
+                'average_quantity_per_active_day': round(
+                    total_quantity / active_days, 2
+                ) if active_days else 0
+            })
+
+        medicines.sort(
+            key=lambda item: item['total_quantity'],
+            reverse=True
+        )
+
+        completed_orders = (
+            order_stats['completed_orders']
+            if order_stats else 0
+        )
+
+        # This is deliberately a readiness check, not a prediction.
+        forecast_ready = (
+            completed_orders >= 30
+            and len(medicines) > 0
+        )
+
+        return render_template(
+            'pharmacy_demand_forecast.html',
+            pharmacy_name=session.get(
+                'pharmacy_name', 'Your Pharmacy'
+            ),
+            medicines=medicines,
+            completed_orders=completed_orders,
+            first_order_date=(
+                order_stats['first_order_date']
+                if order_stats else None
+            ),
+            last_order_date=(
+                order_stats['last_order_date']
+                if order_stats else None
+            ),
+            forecast_ready=forecast_ready
+        )
+
+    except Exception:
+        app.logger.exception(
+            'Medicine demand insights failed'
+        )
+
+        return (
+            'Unable to load demand insights right now. '
+            'Please try again later.',
+            500
+        )
 
 #  API: Dashboard — stats summary
 @app.route('/api/pharmacy/stats')
