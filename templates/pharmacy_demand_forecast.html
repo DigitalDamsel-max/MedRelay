@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Medicine Demand Insights | MedRelay</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f4f7fb;
+            color: #243247;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: auto;
+        }
+
+        .header {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px #0000000a;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #176b58;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit, minmax(200px, 1fr)
+            );
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0000000a;
+        }
+
+        .label {
+            color: #68778b;
+            font-size: 14px;
+        }
+
+        .value {
+            margin-top: 10px;
+            font-size: 26px;
+            font-weight: bold;
+        }
+
+        .notice {
+            padding: 16px;
+            margin-bottom: 20px;
+            background: #fff7df;
+            border-left: 5px solid #e4a11b;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+
+        .table-wrapper {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #e8edf3;
+        }
+
+        th {
+            background: #f4f7fb;
+        }
+
+        .muted {
+            color: #68778b;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 18px;
+            color: #176b58;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .header, .table-wrapper {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>Medicine Demand Insights</h1>
+
+        <p>
+            Welcome, {{ pharmacy_name }}.
+            Review historical medicine demand to support
+            pharmacy planning.
+        </p>
+
+        <p class="muted">
+            Historical period: Last 90 days
+        </p>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <div class="label">
+                Delivered Orders
+            </div>
+
+            <div class="value">
+                {{ completed_orders }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">
+                Medicines with Recorded Demand
+            </div>
+
+            <div class="value">
+                {{ medicines|length }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">
+                Forecast Status
+            </div>
+
+            <div class="value" style="font-size: 19px;">
+                {% if forecast_ready %}
+                    Ready for evaluation
+                {% else %}
+                    More data needed
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    {% if not forecast_ready %}
+        <div class="notice">
+            <strong>Forecasting is not available yet.</strong>
+
+            <p>
+                MedRelay needs more completed order history
+                before we can properly evaluate a forecasting
+                model. The figures below are historical summaries,
+                not predictions of future demand.
+            </p>
+        </div>
+    {% else %}
+        <div class="notice">
+            <strong>Historical data is available for evaluation.</strong>
+
+            <p>
+                This status does not mean that a trained model
+                is ready or accurate. Model training and
+                validation are still required before showing
+                forecasts.
+            </p>
+        </div>
+    {% endif %}
+
+    <div class="table-wrapper">
+        <h2>Historical Medicine Demand</h2>
+
+        {% if medicines %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Medicine</th>
+                        <th>Total Quantity</th>
+                        <th>Days with Orders</th>
+                        <th>Average per Active Day</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for medicine in medicines %}
+                        <tr>
+                            <td>
+                                {{ medicine.medicine_name }}
+                            </td>
+
+                            <td>
+                                {{ medicine.total_quantity }}
+                            </td>
+
+                            <td>
+                                {{ medicine.active_days }}
+                            </td>
+
+                            <td>
+                                {{ medicine.average_quantity_per_active_day }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="muted">
+                No delivered medicine orders were found
+                for this pharmacy in the last 90 days.
+            </p>
+        {% endif %}
+    </div>
+
+    <a class="back-link" href="{{ url_for('pharmacy_dashboard') }}">
+        &larr; Back to Pharmacy Dashboard
+    </a>
+
+</div>
+</body>
+</html>
